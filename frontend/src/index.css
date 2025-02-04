@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@config "../tailwind.config.js";
+
+:root {
+  --primary: 124 77 255;
+  --secondary: 49 27 146;
+  --foreground: 196 196 196;
+  --background: 18 18 18;
+  --background-paper: 30 30 30;
+  --background-lite: 50 50 50;
+}
+
+/* Custom base styles */
+@layer base {
+  body {
+    @apply bg-background-paper text-white font-inter;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2 p-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-foreground/60 rounded-full hover:bg-foreground m-8;
+  }
+}
