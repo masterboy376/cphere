@@ -6,11 +6,9 @@ use mongodb::bson::{oid::ObjectId, doc, Document, DateTime as BsonDateTime};
 pub struct Message {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-
     pub chat_id: ObjectId,
     pub sender_id: ObjectId,
     pub content: String,
-
     pub created_at: DateTime<Utc>,
 }
 

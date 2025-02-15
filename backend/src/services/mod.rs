@@ -1,4 +1,3 @@
-pub mod user;
+pub mod auth;
 pub mod chat;
-pub mod message;
 pub mod notification;

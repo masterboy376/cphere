@@ -1,21 +1,23 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use validator::Validate;
 use chrono::prelude::*;
-use mongodb::bson::{oid::ObjectId, doc, Document, DateTime as BsonDateTime};
+use mongodb::bson::{
+    DateTime as BsonDateTime,
+    doc,
+    Document,
+    oid::ObjectId,
+};
+
 
 #[derive(Debug, Serialize, Deserialize, Validate, Clone)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
-
     #[validate(length(min = 3, message = "Username must be at least 3 characters long"))]
     pub username: String,
-
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
-
-    pub password_hash: String, // No length validation, since it's a hash
-
+    pub password_hash: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -41,7 +43,6 @@ impl User {
             "password_hash": &self.password_hash,
             "created_at": BsonDateTime::from_millis(self.created_at.timestamp_millis()), // Convert `chrono::DateTime<Utc>` to `bson::DateTime`
         };
-
         if let Some(ref id) = self.id {
             doc.insert("_id", id);
         }

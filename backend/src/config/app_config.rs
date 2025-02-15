@@ -7,16 +7,15 @@ use thiserror::Error;
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub database_url: String,
-    pub database_name: String,
-    // Add more configuration options here (e.g., server port, email settings, etc.)
+    pub database_name: String
 }
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
     #[error("Missing environment variable: {0}")]
-    MissingVar(String),
+    MissingVariable(String),
     #[error("Failed to parse config: {0}")]
-    ParseError(String),
+    ParseConfig(String),
 }
 
 impl AppConfig {
@@ -24,9 +23,9 @@ impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
         dotenv().ok(); // Load from .env if present
         let database_url = env::var("DATABASE_URL")
-            .map_err(|_| ConfigError::MissingVar("DATABASE_URL".into()))?;
+            .map_err(|_| ConfigError::MissingVariable("DATABASE_URL".into()))?;
         let database_name = env::var("DATABASE_NAME")
-            .map_err(|_| ConfigError::MissingVar("DATABASE_NAME".into()))?;
+            .map_err(|_| ConfigError::MissingVariable("DATABASE_NAME".into()))?;
         Ok(AppConfig {
             database_url,
             database_name,
