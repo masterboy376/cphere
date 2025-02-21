@@ -1,10 +1,11 @@
 use actix_session::{SessionMiddleware, storage::CookieSessionStore};
-use actix_web::{App, HttpServer, web, cookie::{Key, SameSite}};
+use actix_web::{App, HttpServer, web, cookie::{Key, SameSite}, middleware::Logger};
 use cphere_backend::{
     config::database::init_db,
     handlers::{
         auth::{login_handler, logout_handler, register_handler},
         chat::ws_session_start_handler,
+        video_call::{initiate_video_call, respond_video_call},
     },
     middleware::auth_middleware::AuthMiddlewareFactory,
     states::app_state::AppState,
@@ -12,9 +13,13 @@ use cphere_backend::{
 use mongodb::{Client, Database};
 use std::sync::Arc;
 use tokio::signal;
+use env_logger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Initialize the logger
+    env_logger::init();
+
     // Initialize the database
     let (client, db): (Client, Database) = match init_db().await {
         Ok((client, db)) => (client, db),
@@ -40,6 +45,7 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(app_state_data.clone()) // Add AppState to the app's data
+            .wrap(Logger::default()) // Enable logging middleware
             .wrap(
                 SessionMiddleware::builder(
                     CookieSessionStore::default(),
@@ -55,12 +61,14 @@ async fn main() -> std::io::Result<()> {
                     web::scope("/auth")
                         .service(register_handler)
                         .service(login_handler)
-                        .service(logout_handler),
+                        .service(logout_handler)
                 )
                 .service(
-                    web::scope("/ws")
+                    web::scope("/authenticated")
                         .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
-                        .service(ws_session_start_handler),
+                        .service(ws_session_start_handler)
+                        .service(initiate_video_call)
+                        .service(respond_video_call)
                 );
             })
     })

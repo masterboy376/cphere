@@ -23,6 +23,8 @@ actix-web-actors = "4"
 actix = "0.13"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }
 actix-service = "2.0.2"
+env_logger = "0.9"
+log = "0.4"
 
 [dev-dependencies]
 # Additional crates for integration/acceptance tests can be added here.

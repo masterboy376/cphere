@@ -5,8 +5,8 @@ use mongodb::{
     options::ClientOptions
 };
 use thiserror::Error;
-
 use crate::config::app_config::{AppConfig, ConfigError};
+
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -17,7 +17,7 @@ pub enum DbError {
 }
 
 pub async fn init_db() -> Result<(Client, Database), DbError> {
-    let config = AppConfig::from_env()?;
+    let config = AppConfig::new()?;
     let client_options = ClientOptions::parse(&config.database_url).await?;
     let client = Client::with_options(client_options)?;
     let db = client.database(&config.database_name);

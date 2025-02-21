@@ -1,14 +1,19 @@
-use cphere_backend::models::notification::Notification;
+use cphere_backend::{
+    models::notification::Notification,
+    config::app_config::{AppConfig, ConfigError};
+};
 use mongodb::bson::oid::ObjectId;
 use chrono::Utc;
 
 #[test]
 fn test_create_notification() {
+    let config = AppConfig::new();
+
     // Create an ObjectId for the user.
     let user_id = ObjectId::new();
 
     // Create a notification using the expected parameters.
-    let notification = Notification::new(user_id, "New message");
+    let notification = Notification::new(config.video_call_notification, user_id, "New message");
 
     // Check that the user_id and message are set as expected.
     assert_eq!(notification.user_id, user_id);
