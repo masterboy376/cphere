@@ -1,4 +1,4 @@
-use cphere_backend::models::message::Message;
+use cphere_backend::models::message_model::Message;
 use chrono::Utc;
 use mongodb::bson::oid::ObjectId;
 

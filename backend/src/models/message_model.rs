@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
-use mongodb::bson::{oid::ObjectId, doc, Document, DateTime as BsonDateTime};
+use mongodb::bson::{doc, oid::ObjectId, DateTime as BsonDateTime, Document};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {

@@ -1,19 +1,31 @@
-use actix_session::{SessionMiddleware, storage::CookieSessionStore};
-use actix_web::{App, HttpServer, web, cookie::{Key, SameSite}, middleware::Logger};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{
+    cookie::{Key, SameSite},
+    middleware::Logger,
+    web::{self}, App, HttpServer,
+};
 use cphere_backend::{
     config::database::init_db,
     handlers::{
-        auth::{login_handler, logout_handler, register_handler},
-        chat::ws_session_start_handler,
-        video_call::{initiate_video_call, respond_video_call},
+        auth_handler::{
+            change_password_handler, login_handler, logout_handler, register_handler,
+            reset_password_handler,
+        },
+        chat_handler::{
+            create_new_chat_handler, get_chat_messages_handler, send_message_handler, delete_chat_handler
+        },
+        ws_handler::ws_session_start_handler,
+        user_handler::{
+            check_batch_online_handler, check_online_handler, get_chats_handler, get_my_data_handler, get_notifications_handler, search_users_handler
+        },
+        video_call_handler::{initiate_video_call, respond_video_call},
     },
     middleware::auth_middleware::AuthMiddlewareFactory,
     states::app_state::AppState,
 };
-use mongodb::{Client, Database};
-use std::sync::Arc;
-use tokio::signal;
 use env_logger;
+use mongodb::{Client, Database};
+use tokio::signal;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -62,13 +74,37 @@ async fn main() -> std::io::Result<()> {
                         .service(register_handler)
                         .service(login_handler)
                         .service(logout_handler)
+                        .service(reset_password_handler)
+                        .service(change_password_handler),
                 )
+                .service(search_users_handler)
                 .service(
                     web::scope("/authenticated")
                         .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
-                        .service(ws_session_start_handler)
+                        .service(ws_session_start_handler),
+                )
+                .service(
+                    web::scope("/users")
+                        .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
+                        .service(get_chats_handler)
+                        .service(check_online_handler)
+                        .service(check_batch_online_handler)
+                        .service(get_notifications_handler)
+                        .service(get_my_data_handler)
+                )
+                .service(
+                    web::scope("/chats")
+                        .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
+                        .service(create_new_chat_handler)
+                        .service(delete_chat_handler)
+                        .service(send_message_handler)
+                        .service(get_chat_messages_handler),
+                )
+                .service(
+                    web::scope("/video_call")
+                        .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
                         .service(initiate_video_call)
-                        .service(respond_video_call)
+                        .service(respond_video_call),
                 );
             })
     })

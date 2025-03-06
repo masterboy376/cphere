@@ -1,13 +1,7 @@
+use chrono::prelude::*;
+use mongodb::bson::{doc, oid::ObjectId, DateTime as BsonDateTime, Document};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use chrono::prelude::*;
-use mongodb::bson::{
-    DateTime as BsonDateTime,
-    doc,
-    Document,
-    oid::ObjectId,
-};
-
 
 #[derive(Debug, Serialize, Deserialize, Validate, Clone)]
 pub struct User {
@@ -18,6 +12,10 @@ pub struct User {
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
     pub password_hash: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reset_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reset_token_expiry_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -28,6 +26,8 @@ impl User {
             username: username.to_owned(),
             email: email.to_owned(),
             password_hash: password_hash.to_owned(),
+            reset_token: None,
+            reset_token_expiry_at: None,
             created_at: Utc::now(),
         }
     }
@@ -45,6 +45,9 @@ impl User {
         };
         if let Some(ref id) = self.id {
             doc.insert("_id", id);
+        }
+        if let Some(ref reset_token) = self.reset_token {
+            doc.insert("reset_token", reset_token);
         }
 
         doc

@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug)]
 pub enum RateLimiterError {
@@ -41,11 +41,11 @@ impl Middleware for RateLimiter {
         let mut requests = self.requests.lock().unwrap();
         let now = SystemTime::now();
         let entry = requests.entry(ctx.ip_address.clone()).or_insert((now, 0));
-        
+
         if now.duration_since(entry.0).unwrap_or(Duration::ZERO) > self.window {
             *entry = (now, 0);
         }
-        
+
         entry.1 += 1;
         if entry.1 > self.max_requests {
             Err(RateLimiterError::TooManyRequests)

@@ -1,4 +1,4 @@
-pub mod user;
-pub mod chat;
-pub mod message;
-pub mod notification;
+pub mod chat_model;
+pub mod message_model;
+pub mod notification_model;
+pub mod user_model;

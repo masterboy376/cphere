@@ -21,8 +21,6 @@ mod chat_model_tests;
 mod message_model_tests;
 #[path = "unit/models/notification_model_tests.rs"]
 mod notification_model_tests;
-#[path = "unit/models/session_model_tests.rs"]
-mod session_model_tests;
 #[path = "unit/models/user_model_tests.rs"]
 mod user_model_tests;
 

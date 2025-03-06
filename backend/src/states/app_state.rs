@@ -1,17 +1,11 @@
+use crate::websocket::websocket_session::TextMessage;
 use actix::Recipient;
-use mongodb::{
-    bson::oid::ObjectId,
-    Client,
-    Database
-};
+use mongodb::{bson::oid::ObjectId, Client, Database};
 use std::{
     collections::{HashMap, HashSet},
-    sync::Arc
+    sync::Arc,
 };
 use tokio::sync::RwLock;
-
-use crate::websocket::session::TextMessage;
-
 
 pub struct AppState {
     pub ws_sessions: Arc<RwLock<HashMap<ObjectId, Recipient<TextMessage>>>>,

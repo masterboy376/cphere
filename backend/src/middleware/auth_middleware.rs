@@ -1,9 +1,9 @@
 use actix_service::{Service, Transform};
 use actix_session::SessionExt;
 use actix_web::{
-    body::{BoxBody, MessageBody},
+    body::BoxBody,
     dev::{ServiceRequest, ServiceResponse},
-    Error, HttpMessage, HttpResponse,
+    Error, HttpResponse,
 };
 use futures::future::{ok, Either, Ready};
 use futures_util::future::LocalBoxFuture;

@@ -1,4 +1,4 @@
-use cphere_backend::models::user::User;
+use cphere_backend::models::user_model::User;
 use chrono::Utc;
 use validator::Validate;
 
