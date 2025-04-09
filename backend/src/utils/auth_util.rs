@@ -37,12 +37,14 @@ pub fn generate_reset_token() -> String {
 pub fn send_reset_email(email: &str, token: &str) -> Result<(), Box<dyn Error>> {
     let config = AppConfig::new().unwrap();
     
+    let reset_link = format!("http://localhost:5173/reset-password/{}", token);
+    // reset_link = format!("{}/reset_password?email={}&token={}", config.frontend_url, email, token);
     // Build the email message
     let email_message = Message::builder()
         .from(config.email_address.parse().unwrap())
         .to(email.parse().unwrap())
         .subject("Password Reset")
-        .body(format!("Use this token to reset your password: {}", token))?;
+        .body(format!("Visit this link to reset your password: {}", reset_link))?;
     
     // Create credentials using your Gmail address and app password.
     let creds = Credentials::new(

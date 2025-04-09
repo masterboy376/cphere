@@ -20,12 +20,14 @@ futures = "0.3"
 futures-util = "0.3"
 actix-web = "4"
 actix-web-actors = "4"
+actix-cors = "0.6"
 actix = "0.13"
 actix-session = { version = "0.7.2", features = ["cookie-session"] }
 actix-service = "2.0.2"
 env_logger = "0.9"
 log = "0.4"
 lettre = "0.11"
+time = "0.3"
 
 [dev-dependencies]
 # Additional crates for integration/acceptance tests can be added here.

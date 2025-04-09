@@ -1,14 +1,16 @@
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_session::config::PersistentSession;
 use actix_web::{
     cookie::{Key, SameSite},
     middleware::Logger,
     web::{self}, App, HttpServer,
 };
+use actix_cors::Cors;
 use cphere_backend::{
     config::database::init_db,
     handlers::{
         auth_handler::{
-            change_password_handler, login_handler, logout_handler, register_handler,
+            change_password_handler, login_handler, logout_handler, auth_status_handler, register_handler,
             reset_password_handler,
         },
         chat_handler::{
@@ -25,6 +27,7 @@ use cphere_backend::{
 };
 use env_logger;
 use mongodb::{Client, Database};
+use time::Duration;
 use tokio::signal;
 
 #[actix_web::main]
@@ -59,6 +62,18 @@ async fn main() -> std::io::Result<()> {
             .app_data(app_state_data.clone()) // Add AppState to the app's data
             .wrap(Logger::default()) // Enable logging middleware
             .wrap(
+                Cors::default()
+                    .allowed_origin("http://localhost:5173")
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                    .allowed_headers(vec![
+                        actix_web::http::header::AUTHORIZATION,
+                        actix_web::http::header::ACCEPT,
+                        actix_web::http::header::CONTENT_TYPE,
+                    ])
+                    .supports_credentials()
+                    .max_age(3600),
+            )
+            .wrap(
                 SessionMiddleware::builder(
                     CookieSessionStore::default(),
                     Key::from(&[0; 64]), // Use a 64-byte key
@@ -66,6 +81,10 @@ async fn main() -> std::io::Result<()> {
                 .cookie_secure(false) // Set to true in production with HTTPS
                 .cookie_name("session_id".to_owned()) // Optionally set a custom cookie name
                 .cookie_same_site(SameSite::Lax) // Set the SameSite policy
+                .cookie_http_only(true) // Prevent JavaScript access (security best practice)
+                .session_lifecycle(
+                    PersistentSession::default().session_ttl(Duration::days(7)), // Keep session for 7 days
+                )
                 .build(),
             )
             .configure(|cfg| {
@@ -74,12 +93,13 @@ async fn main() -> std::io::Result<()> {
                         .service(register_handler)
                         .service(login_handler)
                         .service(logout_handler)
+                        .service(auth_status_handler)
                         .service(reset_password_handler)
                         .service(change_password_handler),
                 )
                 .service(search_users_handler)
                 .service(
-                    web::scope("/authenticated")
+                    web::scope("/socket")
                         .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
                         .service(ws_session_start_handler),
                 )

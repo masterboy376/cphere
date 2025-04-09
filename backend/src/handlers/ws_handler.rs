@@ -8,7 +8,7 @@ use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
 // Handshake must use a get method, as per the WebSocket protocol (RFC 6455)
-#[get("/ws")]
+#[get("/connect")]
 pub async fn ws_session_start_handler(
     req: HttpRequest,
     stream: web::Payload,

@@ -11,7 +11,7 @@ use actix_web::{get, post, web, Error, HttpRequest, HttpResponse};
 use mongodb::bson::oid::ObjectId;
 use std::collections::HashSet;
 
-#[post("/create_new_chat")]
+#[post("/create")]
 pub async fn create_new_chat_handler(
     req: HttpRequest,
     state: web::Data<AppState>,
@@ -37,7 +37,7 @@ pub async fn create_new_chat_handler(
     Ok(HttpResponse::Ok().json(new_chat))
 }
 
-#[post("/delete_chat")]
+#[post("/delete")]
 pub async fn delete_chat_handler(
     req: HttpRequest,
     state: web::Data<AppState>,

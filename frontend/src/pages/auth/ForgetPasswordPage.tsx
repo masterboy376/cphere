@@ -3,11 +3,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { EnvelopeIcon } from '@heroicons/react/24/outline'
+import { useEffect, useState } from 'react'
+import authBackendApiService, { AuthResetPasswordRequest } from '../../services/auth/AuthBackendApiService'
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email()
+  email: z.string().email("Please enter a valid email address"),
 })
-  
+
 type ForgetPasswordData = z.infer<typeof forgotPasswordSchema>
 
 export const ForgotPasswordPage = () => {
@@ -15,10 +17,43 @@ export const ForgotPasswordPage = () => {
     resolver: zodResolver(forgotPasswordSchema)
   })
 
+  const [loading, setLoading] = useState(false)
+  const [formResponse, setFormResponse] = useState<{ status: string, message: string } | null>(null)
+
   const onSubmit = async (data: ForgetPasswordData) => {
-    // API call here
-    console.log(data)
+    setLoading(true)
+    try {
+      const payload: AuthResetPasswordRequest = {
+        email: data.email
+      }
+      const response = await authBackendApiService.resetPassword(payload)
+      setFormResponse({
+        "status": "success",
+        "message": response?.message || "Reset link sent successfully. Please check your email."
+      })
+    } catch (err: any) {
+      setFormResponse({
+        "status": "error",
+        "message": err.response?.data?.message || "Error sending reset link. Please try again."
+      })
+    } finally {
+      setLoading(false)
+    }
   }
+
+  useEffect(() => {
+    const checkUserAuthentication = async () => {
+      try {
+        const isAuthenticated = await authBackendApiService.authStatus();
+        if (isAuthenticated) {
+          window.location.href = '/chats';
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      }
+    };
+    checkUserAuthentication();
+  }, []);
 
   return (
     <AuthFormWrapper
@@ -46,9 +81,14 @@ export const ForgotPasswordPage = () => {
         <button
           type="submit"
           className="w-full bg-primary hover:bg-primary-dark text-white py-3 px-4 rounded-lg transition-colors"
+          disabled={loading}
         >
-          Send Reset Link
+          {loading ? "Sending..." : "Send Reset Link"}
         </button>
+
+        {formResponse && (
+          <p className={`mt-1 text-center text-sm ${formResponse.status === "success" ? "text-green-500" : "text-red-500"}`}>{formResponse.message}</p>
+        )}
       </form>
     </AuthFormWrapper>
   )

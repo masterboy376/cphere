@@ -3,6 +3,11 @@ use mongodb::bson::{doc, oid::ObjectId, DateTime as BsonDateTime, Document};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+// fn serialize_bson_datetime_as_rfc3339_string<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+// where S: serde::Serializer {
+//     serializer.serialize_str(&date.to_rfc3339())
+// }
+
 #[derive(Debug, Serialize, Deserialize, Validate, Clone)]
 pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -15,7 +20,8 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reset_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reset_token_expiry_at: Option<DateTime<Utc>>,
+    pub reset_token_expiry_at: Option<i64>,
+    // #[serde(serialize_with = "serialize_bson_datetime_as_rfc3339_string")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -48,6 +54,9 @@ impl User {
         }
         if let Some(ref reset_token) = self.reset_token {
             doc.insert("reset_token", reset_token);
+        }
+        if let Some(ref reset_token_expiry_at) = self.reset_token_expiry_at {
+            doc.insert("reset_token_expiry_at", reset_token_expiry_at);
         }
 
         doc

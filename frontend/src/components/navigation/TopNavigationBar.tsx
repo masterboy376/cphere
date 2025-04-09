@@ -5,6 +5,7 @@ import { useNavigation } from '../../contexts/NavigationContext'
 import { NotificationDrawer } from '../notification/NotificationDrawer'
 
 import { Notification } from '../notification/NotificationCard'
+import LogoutButton from '../button/LogoutButton'
 
 export const TopNavigationBar: FC = () => {
   const { toggleSidebar } = useNavigation()
@@ -55,19 +56,22 @@ export const TopNavigationBar: FC = () => {
           <span className="text-xl font-bold text-primary">Cphere</span>
         </div>
 
-        {/* Notifications */}
-        <button
-          onClick={() => setIsNotificationsOpen(true)}
-          className="hover:bg-background-lite transition-color rounded-full p-2"
-        >
-          <BellIcon className="h-6 w-6" />
-        </button>
+        {/* Notifications and logout */}
+        <div className="flex items-center gap-2">
+          <LogoutButton />
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="hover:bg-background-lite transition-color rounded-full p-2"
+          >
+            <BellIcon className="h-6 w-6" />
+          </button>
 
-        <NotificationDrawer
-          isOpen={isNotificationsOpen}
-          onClose={() => setIsNotificationsOpen(false)}
-          notifications={notifications}
-        />
+          <NotificationDrawer
+            isOpen={isNotificationsOpen}
+            onClose={() => setIsNotificationsOpen(false)}
+            notifications={notifications}
+          />
+        </div>
       </nav>
     </header>
   )

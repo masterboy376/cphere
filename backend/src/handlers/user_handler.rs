@@ -97,7 +97,7 @@ pub async fn search_users_handler(
 }
 
 // Fetch logged-in user’s data using session information
-#[get("/me")]
+#[get("/profile")]
 pub async fn get_my_data_handler(
     req: HttpRequest,
     state: web::Data<AppState>,

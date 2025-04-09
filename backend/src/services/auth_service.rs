@@ -7,7 +7,7 @@ use crate::{
 use actix_session::Session;
 use actix_web::{web, Error};
 use chrono::{Duration, Utc};
-use mongodb::bson::{doc, Bson, DateTime as BsonDateTime};
+use mongodb::bson::{doc, Bson};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -37,7 +37,7 @@ pub struct ChangePasswordRequest {
 pub async fn register_user(
     state: &web::Data<AppState>,
     req: &RegisterRequest,
-) -> Result<String, Error> {
+) -> Result<User, Error> {
     // Check if username or email already exists
     let collection = state.db.collection::<User>(User::collection_name());
 
@@ -63,15 +63,19 @@ pub async fn register_user(
         .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to hash password"))?;
 
     // Create the user
-    let user = User::new(&req.username, &req.email, &hashed_password);
+    let mut user = User::new(&req.username, &req.email, &hashed_password);
 
     // Insert into the database
-    collection.insert_one(user, None).await.map_err(|e| {
+    let insert_result = collection.insert_one(&user, None).await.map_err(|e| {
         log::error!("MongoDB error: {}", e);
         actix_web::error::ErrorInternalServerError("Failed to register user")
     })?;
 
-    Ok("User registered successfully".to_string())
+    // Update the user with its newly generated id, if applicable.
+    // Change this assignment as needed based on your User id type.
+    user.id = insert_result.inserted_id.as_object_id();
+
+    Ok(user)
 }
 
 pub async fn authenticate_user(
@@ -128,7 +132,7 @@ pub async fn send_reset_password_email(
     collection
         .update_one(
             doc! { "_id": &user.id },
-            doc! { "$set": { "reset_token": &reset_token, "reset_token_expiry_at": BsonDateTime::from_millis(expires_at.timestamp_millis()) } },
+            doc! { "$set": { "reset_token": &reset_token, "reset_token_expiry_at": expires_at.timestamp_millis() } },
             None,
         )
         .await
@@ -161,7 +165,7 @@ pub async fn change_password(
         .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid reset token"))?;
 
     // Check if token is expired
-    if user.reset_token_expiry_at.unwrap_or_else(Utc::now) < Utc::now() {
+    if user.reset_token_expiry_at.unwrap_or_else(|| 0) < Utc::now().timestamp_millis() {
         return Err(actix_web::error::ErrorBadRequest("Reset token expired"));
     }
 
@@ -172,7 +176,7 @@ pub async fn change_password(
     collection
         .update_one(
             doc! { "_id": &user.id },
-            doc! { "$set": { "password_hash": &hashed_password, "reset_token": "", "token_expires_at": Bson::Null } },
+            doc! { "$set": { "password_hash": &hashed_password, "reset_token": "", "reset_token_expiry_at": Bson::Null } },
             None,
         )
         .await
