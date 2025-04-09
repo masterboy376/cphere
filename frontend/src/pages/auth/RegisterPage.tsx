@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { UserIcon, LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import authBackendApiService, { AuthRegisterRequest } from '../../services/auth/AuthBackendApiService.ts'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const registerSchema = z.object({
   username: z.string().min(2, "Username must be at least 2 characters").regex(/^\S*$/, "Username should not contain spaces"),
@@ -49,20 +49,6 @@ export const RegisterPage = () => {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    const checkUserAuthentication = async () => {
-      try {
-        const isAuthenticated = await authBackendApiService.authStatus();
-        if (isAuthenticated) {
-          window.location.href = '/chats';
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      }
-    };
-    checkUserAuthentication();
-  }, []);
 
   return (
     <AuthFormWrapper title="Create Account" subtitle="Get started with Cphere">

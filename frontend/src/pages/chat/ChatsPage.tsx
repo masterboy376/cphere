@@ -5,28 +5,28 @@ import { Footer } from '../../components/common/Footer'
 const mockChats = [
   {
     id: '1',
-    username: 'JohnDoe',
+    participantUsername: 'JohnDoe',
+    participantUserId: '123',
     lastMessage: 'Hey, how are you?',
-    timestamp: new Date(Date.now() - 3600000),
-    unreadCount: 2
+    lastMessageTimestamp: new Date(Date.now() - 3600000)
   },{
-    id: '1',
-    username: 'JohnDoe',
+    id: '2',
+    participantUsername: 'JohnDoe',
+    participantUserId: '123',
     lastMessage: 'Hey, how are you?',
-    timestamp: new Date(Date.now() - 3600000),
-    unreadCount: 2
+    lastMessageTimestamp: new Date(Date.now() - 3600000)
   },{
-    id: '1',
-    username: 'JohnDoe',
+    id: '3',
+    participantUsername: 'JohnDoe',
+    participantUserId: '123',
     lastMessage: 'Hey, how are you?',
-    timestamp: new Date(Date.now() - 3600000),
-    unreadCount: 2
+    lastMessageTimestamp: new Date(Date.now() - 3600000)
   },{
-    id: '1',
-    username: 'JohnDoe',
+    id: '4',
+    participantUsername: 'JohnDoe',
+    participantUserId: '123',
     lastMessage: 'Hey, how are you?',
-    timestamp: new Date(Date.now() - 3600000),
-    unreadCount: 2
+    lastMessageTimestamp: new Date(Date.now() - 3600000)
   },
   // Add more mock chats...
 ]

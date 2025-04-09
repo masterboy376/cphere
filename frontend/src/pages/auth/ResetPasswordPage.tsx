@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { LockClosedIcon } from '@heroicons/react/24/outline'
 import authBackendApiService, { AuthChangePasswordRequest } from '../../services/auth/AuthBackendApiService'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const resetPasswordSchema = z
   .object({
@@ -64,20 +64,6 @@ export const ResetPasswordPage = () => {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    const checkUserAuthentication = async () => {
-      try {
-        const isAuthenticated = await authBackendApiService.authStatus();
-        if (isAuthenticated) {
-          window.location.href = '/chats';
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      }
-    };
-    checkUserAuthentication();
-  }, []);
 
   return (
     <AuthFormWrapper title="Set New Password" subtitle="Enter your new password below">

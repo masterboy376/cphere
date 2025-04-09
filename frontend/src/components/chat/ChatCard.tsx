@@ -5,13 +5,13 @@ import { UserAvatar } from './UserAvatar'
 
 interface ChatCardProps {
   id: string
-  username: string
+  participantUsername: string
+  participantUserId: string
   lastMessage: string
-  timestamp: Date
-  unreadCount: number
+  lastMessageTimestamp: Date
 }
 
-export const ChatCard = ({ id, username, lastMessage, timestamp }: ChatCardProps) => {
+export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTimestamp }: ChatCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -53,14 +53,14 @@ export const ChatCard = ({ id, username, lastMessage, timestamp }: ChatCardProps
   return (
     <div className="group relative flex items-center p-4 hover:bg-background-paper transition-all duration-300 ease-in-out cursor-pointer border-b border-background-lite">
       <div className="flex-1 flex items-center gap-4" onClick={handleChatClick}>
-        <UserAvatar username={username} />
+        <UserAvatar username={participantUsername} />
         <div className="flex-1 flex">
           <div className="flex-1 flex flex-col items-start justify-between">
-            <h3 className="font-medium text-text-primary">{username}</h3>
+            <h3 className="font-medium text-text-primary">{participantUsername}</h3>
             <p className="text-sm text-text-secondary truncate">{lastMessage}</p>
           </div>
           <span className="text-sm flex flex-col text-text-secondary justify-center mr-2">
-            {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(lastMessageTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       </div>

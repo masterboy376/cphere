@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { EnvelopeIcon } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import authBackendApiService, { AuthResetPasswordRequest } from '../../services/auth/AuthBackendApiService'
 
 const forgotPasswordSchema = z.object({
@@ -40,20 +40,6 @@ export const ForgotPasswordPage = () => {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    const checkUserAuthentication = async () => {
-      try {
-        const isAuthenticated = await authBackendApiService.authStatus();
-        if (isAuthenticated) {
-          window.location.href = '/chats';
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      }
-    };
-    checkUserAuthentication();
-  }, []);
 
   return (
     <AuthFormWrapper

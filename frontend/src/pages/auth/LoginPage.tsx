@@ -1,7 +1,7 @@
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -49,20 +49,6 @@ export const LoginPage = () => {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    const checkUserAuthentication = async () => {
-      try {
-        const isAuthenticated = await authBackendApiService.authStatus();
-        if (isAuthenticated) {
-          window.location.href = '/chats';
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      }
-    };
-    checkUserAuthentication();
-  }, []);
 
   return (
     <AuthFormWrapper

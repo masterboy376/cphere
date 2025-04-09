@@ -50,9 +50,16 @@ pub async fn logout_handler(session: Session) -> Result<HttpResponse, Error> {
 }
 
 #[get("/auth_status")]
-async fn auth_status_handler(session: Session) -> Result<HttpResponse, Error> {
-    let logged_in: bool = session.get::<String>("user_id")?.is_some();
-    Ok(HttpResponse::Ok().json(logged_in))
+pub async fn auth_status_handler(session: Session) -> Result<HttpResponse, Error> {
+    if let Ok(Some(user_id)) = session.get::<String>("user_id") {
+        Ok(HttpResponse::Ok().json(serde_json::json!({
+            "user_id": user_id
+        })))
+    } else {
+        Ok(HttpResponse::Ok().json(serde_json::json!({
+            "user_id": null
+        })))
+    }
 }
 
 #[post("/reset_password")]
