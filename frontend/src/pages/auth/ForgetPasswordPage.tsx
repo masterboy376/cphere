@@ -5,6 +5,7 @@ import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { EnvelopeIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import authBackendApiService, { AuthResetPasswordRequest } from '../../services/auth/AuthBackendApiService'
+import { Link } from 'react-router-dom'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -76,6 +77,12 @@ export const ForgotPasswordPage = () => {
           <p className={`mt-1 text-center text-sm ${formResponse.status === "success" ? "text-green-500" : "text-red-500"}`}>{formResponse.message}</p>
         )}
       </form>
+
+      <div className="mt-6 text-center text-sm text-text-secondary">
+        <Link to="/login" className="text-primary hover:text-primary-dark transition-colors">
+          ← Back to Login
+        </Link>
+      </div>
     </AuthFormWrapper>
   )
 }

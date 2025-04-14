@@ -28,7 +28,7 @@ export const LoginPage = () => {
     setLoading(true)
     setFormResponse(null)
     try {
-      let payload: AuthLoginRequest = {
+      const payload: AuthLoginRequest = {
         username: data.username,
         password: data.password
       }

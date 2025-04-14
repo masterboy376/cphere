@@ -28,7 +28,7 @@ export const SideNavigationBar: FC = () => {
             </Link>
             
             <Link
-              to="/"
+              to="/chats"
               onClick={toggleSidebar}
               className="flex items-center gap-3 p-3 hover:bg-background-lite rounded-lg transition-colors"
             >

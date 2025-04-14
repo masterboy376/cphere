@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { EllipsisVerticalIcon, VideoCameraIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { UserAvatar } from './UserAvatar'
+import { useChat } from '../../contexts/ChatContext'
+import chatBackendApiService, { ChatsDeletePayload } from '../../services/chat/ChatBackendApiService'
 
 interface ChatCardProps {
   id: string
@@ -14,6 +16,7 @@ interface ChatCardProps {
 export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTimestamp }: ChatCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const { removeChat } = useChat()
 
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -24,6 +27,19 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
 
   const handleVideoCall = () => {
     navigate(`/video-call/${id}`)
+  }
+  
+  const handleDeleteChat = async () => {
+    const payload: ChatsDeletePayload = {
+      chat_id: id
+    }
+    try {
+      await chatBackendApiService.delete(payload)
+      removeChat(id)
+      setIsMenuOpen(false)
+    } catch (error) {
+      console.error('Error deleting chat:', error)
+    }
   }
 
   const handleClickOutsideMenu = (event: MouseEvent) => {
@@ -88,7 +104,7 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
             </button>
             <button
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-background-lite text-red-500"
-              onClick={() => console.log('Delete chat')}
+              onClick={handleDeleteChat}
             >
               <TrashIcon className="h-5 w-5" />
               Delete Chat

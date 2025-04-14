@@ -2,11 +2,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { UserAvatar } from '../../components/chat/UserAvatar'
+import userBackendApiService, { UserSearchQuery } from '../../services/user/UserBackendApiService'
+import chatBackendApiService, { ChatsCreatePayload } from '../../services/chat/ChatBackendApiService'
+import { Loader } from '../../components/common/Loader'
+import { useAuthentication } from '../../contexts/AuthenticationContext'
 
 interface UserResult {
   id: string
   username: string
-  avatar?: string
 }
 
 export const SearchPage = () => {
@@ -14,42 +18,43 @@ export const SearchPage = () => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<UserResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const { userId } = useAuthentication()
 
-  // Debounced search
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (query.length < 3) return
-      
-      setIsLoading(true)
-      try {
-        const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
-        const data = await response.json()
-        setResults(data)
-      } catch (error) {
-        console.error('Search failed:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const searchUsers = async () => {
+    if (query.length < 3) return
 
-    const debounceTimer = setTimeout(searchUsers, 300)
-    return () => clearTimeout(debounceTimer)
-  }, [query])
-
-  const startChat = async (userId: string) => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/chats', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: userId })
-      })
+      const payload: UserSearchQuery = { 'q': query }
+      const data = await userBackendApiService.search(payload)
+      const filteredResults = data.filter((user: UserResult) => user.id !== userId)
+      setResults(filteredResults)
+    } catch (error) {
+      console.error('Search failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStartChat = async (userId: string) => {
+    try {
+      const payload: ChatsCreatePayload = { participant_id: userId }
+      const data = await chatBackendApiService.create(payload)
+
+      console.log(data)
       
-      const { chatId } = await response.json()
+      const chatId = await data.id
       navigate(`/chats/${chatId}`)
     } catch (error) {
       console.error('Failed to start chat:', error)
     }
   }
+  
+  useEffect(() => {
+    // Debounced search
+    const debounceTimer = setTimeout(searchUsers, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [query])
 
   return (
     <div className="flex-1 flex flex-col">
@@ -70,20 +75,16 @@ export const SearchPage = () => {
       {/* Results */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-8 text-center text-text-secondary">Searching...</div>
+          <Loader message='Searching...'/>
         ) : results.length > 0 ? (
           results.map((user) => (
             <button
               key={user.id}
-              onClick={() => startChat(user.id)}
+              onClick={() => handleStartChat(user.id)}
               className="w-full p-4 flex items-center gap-4 hover:bg-background-paper transition-colors"
             >
               <div className="h-10 w-10 bg-primary rounded-full flex items-center justify-center text-white">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.username} className="rounded-full" />
-                ) : (
-                  user.username[0].toUpperCase()
-                )}
+                <UserAvatar username={user.username} />
               </div>
               <span className="text-text-primary">{user.username}</span>
             </button>

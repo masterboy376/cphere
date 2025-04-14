@@ -8,12 +8,12 @@ use actix_web::{
 };
 use futures::TryStreamExt;
 use mongodb::bson::{doc, oid::ObjectId};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateChatRoomRequest {
-    pub participant_ids: Vec<String>,
+    pub participant_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,17 +28,83 @@ pub struct SendMessageRequest {
 }
 
 /// Retrieve chat rooms for a given user.
-pub async fn get_user_chats(state: &AppState, user_id: ObjectId) -> Result<Vec<Chat>, Error> {
+#[derive(Debug, Serialize)]
+pub struct ChatSummary {
+    pub id: String,
+    pub participant_username: String,
+    pub participant_user_id: String,
+    pub last_message: Option<String>,
+    pub last_message_timestamp: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub async fn get_user_chats(state: &AppState, user_id: ObjectId) -> Result<Vec<ChatSummary>, Error> {
     let chats_collection = state.db.collection::<Chat>(Chat::collection_name());
+    let users_collection = state.db.collection::<crate::models::user_model::User>("users");
+    let messages_collection = state.db.collection::<Message>(Message::collection_name());
+    
+    // Get all chats for this user
     let cursor = chats_collection
         .find(doc! { "participant_ids": &user_id }, None)
         .await
         .map_err(|_| ErrorInternalServerError("Failed to get chat rooms"))?;
-    let results: Vec<Chat> = cursor
+    
+    let chats: Vec<Chat> = cursor
         .try_collect()
         .await
         .map_err(|_| ErrorInternalServerError("Failed to collect chat rooms"))?;
-    Ok(results)
+    
+    let mut chat_summaries = Vec::new();
+    
+    for chat in chats {
+        // Find the other participant (assuming 2-person chats)
+        let other_participant_id = chat.participant_ids
+            .iter()
+            .find(|&id| id != &user_id)
+            .ok_or_else(|| ErrorInternalServerError("Failed to find other participant"))?;
+        
+        // Get other participant's username
+        let other_user = users_collection
+            .find_one(doc! { "_id": other_participant_id }, None)
+            .await
+            .map_err(|_| ErrorInternalServerError("Failed to get other participant info"))?
+            .ok_or_else(|| ErrorInternalServerError("Other participant not found"))?;
+        
+        // Get last message
+        let mut last_message_cursor = messages_collection
+            .find(doc! { "chat_id": &chat.id }, Some(mongodb::options::FindOptions::builder()
+            .sort(doc! { "created_at": -1 })
+            .limit(1)
+            .build()))
+            .await
+            .map_err(|_| ErrorInternalServerError("Failed to get last message"))?;
+        
+        let last_message = match last_message_cursor.try_next().await {
+            Ok(Some(message)) => Some((message.content, message.created_at)),
+            Ok(None) => None,
+            Err(_) => None, // Instead of returning an error, just treat as no message
+        };
+        
+        // Ensure chat ID exists
+        let chat_id = match chat.id {
+            Some(id) => id,
+            None => return Err(ErrorInternalServerError("Chat ID is None")),
+        };
+
+        if last_message.is_none() {
+            continue; // Skip if no last message
+        }
+
+        // Create chat summary
+        chat_summaries.push(ChatSummary {
+            id: chat_id.to_string(),
+            participant_username: other_user.username,
+            participant_user_id: other_participant_id.clone().to_string(),
+            last_message: last_message.as_ref().map(|(content, _)| content.clone()),
+            last_message_timestamp: last_message.map(|(_, timestamp)| timestamp),
+        });
+    }
+    
+    Ok(chat_summaries)
 }
 
 /// Retrieve a chat room by its ID.
@@ -58,15 +124,49 @@ pub async fn create_chat(
     state: &AppState,
     chat_id: Option<ObjectId>,
     participant_ids: HashSet<ObjectId>,
-) -> Result<Chat, Error> {
-    // Create a new Chat document.
-    let new_chat = Chat::new(chat_id, participant_ids.into_iter().collect(), None);
+) -> Result<serde_json::Value, Error> {
     let chats = state.db.collection::<Chat>(Chat::collection_name());
+    
+    // Check if a chat between these participants already exists
+    let participant_ids_vec: Vec<ObjectId> = participant_ids.iter().cloned().collect();
+    let existing_chat = chats
+        .find_one(
+            doc! {
+                "participant_ids": {
+                    "$all": &participant_ids_vec,
+                    "$size": participant_ids_vec.len() as i32
+                }
+            }, 
+            None
+        )
+        .await
+        .map_err(|_| ErrorInternalServerError("Failed to check for existing chat"))?;
+    
+    // If chat exists, return it
+    if let Some(chat) = existing_chat {
+        let result = serde_json::json!({
+            "id": chat.id.map_or_else(String::new, |id| id.to_string()),
+            "participant_ids": chat.participant_ids,
+            "created_at": chat.created_at
+        });
+        return Ok(result);
+    }
+    
+    // Otherwise, create a new Chat document
+    let new_chat = Chat::new(chat_id, participant_ids.into_iter().collect(), None);
     chats
         .insert_one(new_chat.clone(), None)
         .await
         .map_err(|_| ErrorInternalServerError("Failed to create chat room"))?;
-    Ok(new_chat)
+
+    // Update the document in MongoDB to ensure id field is set correctly
+    // This is necessary because MongoDB auto-generates _id, but our model expects id
+    let new_result = serde_json::json!({
+        "id": new_chat.id.map_or_else(String::new, |id| id.to_string()),
+        "participant_ids": new_chat.participant_ids,
+        "created_at": new_chat.created_at
+    });
+    Ok(new_result)
 }
 
 /// Delete a chat room if the given user is a participant.
@@ -95,6 +195,7 @@ pub async fn send_message(
     user_id: ObjectId,
     content: &str,
 ) -> Result<(), Error> {
+
     let chats = state.db.collection::<Chat>(Chat::collection_name());
     // Verify the user is a participant in the chat.
     chats
@@ -118,7 +219,7 @@ pub async fn get_chat_messages(
     state: &AppState,
     chat_id: ObjectId,
     user_id: ObjectId,
-) -> Result<Vec<Message>, Error> {
+) -> Result<Vec<serde_json::Value>, Error> {
     let chats = state.db.collection::<Chat>(Chat::collection_name());
     // Verify that the user is a participant.
     chats
@@ -126,15 +227,35 @@ pub async fn get_chat_messages(
         .await
         .map_err(|_| ErrorInternalServerError("Database error during participation check"))?
         .ok_or_else(|| ErrorForbidden("You are not a participant in this chat"))?;
-
+    
     let messages_coll = state.db.collection::<Message>(Message::collection_name());
+    
+    // Create find options to sort by created_at in ascending order (oldest to newest)
+    let find_options = mongodb::options::FindOptions::builder()
+        .sort(doc! { "created_at": 1 })
+        .build();
+    
     let cursor = messages_coll
-        .find(doc! { "chat_id": &chat_id }, None)
+        .find(doc! { "chat_id": &chat_id }, find_options)
         .await
-        .map_err(|_| ErrorInternalServerError("Failed to get messages"))?;
+        .map_err(|e| ErrorInternalServerError(format!("Failed to get messages: {}", e)))?;
+    
     let messages: Vec<Message> = cursor
         .try_collect()
         .await
-        .map_err(|_| ErrorInternalServerError("Failed to collect messages"))?;
-    Ok(messages)
+        .map_err(|e| ErrorInternalServerError(format!("Failed to collect messages: {}", e)))?;
+    
+    let results = messages.into_iter()
+        .map(|message| {
+            serde_json::json!({
+                "id": message.id.map_or_else(String::new, |id| id.to_string()),
+                "chat_id": message.chat_id.to_string(),
+                "sender_id": message.sender_id.to_string(),
+                "content": message.content,
+                "created_at": message.created_at
+            })
+        })
+        .collect();
+
+    Ok(results)
 }

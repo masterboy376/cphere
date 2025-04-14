@@ -12,8 +12,8 @@ export const AuthenticatedLayout = () => {
     const checkUserAuthentication = async () => {
       try {
         const status = await authBackendApiService.authStatus();
+        setUserId(status.user_id);
         if (!status.user_id) {
-          setUserId(status.user_id);
           window.location.href = '/login';
         }
       } catch (error) {

@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
 export const AuthFormWrapper = ({ 
   title, 
@@ -22,11 +21,6 @@ export const AuthFormWrapper = ({
 
         {children}
 
-        <div className="mt-6 text-center text-sm text-text-secondary">
-          <Link to="/" className="text-primary hover:text-primary-dark transition-colors">
-            ← Back to home
-          </Link>
-        </div>
       </div>
     </div>
   )

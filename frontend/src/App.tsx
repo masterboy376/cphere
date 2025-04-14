@@ -12,34 +12,40 @@ import { VideoCallBoard } from './pages/video/VideoCallBoard'
 import { UnauthenticatedLayout } from './layouts/UnauthenticatedLayout'
 import { AuthenticatedLayout } from './layouts/AuthenticatedLayout'
 
+import { AuthenticationProvider } from './contexts/AuthenticationContext'
+import { ChatProvider } from './contexts/ChatContext'
 import { NavigationProvider } from './contexts/NavigationContext'
 
 function App() {
 
   return (
     <Router>
-      <NavigationProvider>
-        <Routes>
-          {/* Authenticated Routes */}
-          <Route element={<AuthenticatedLayout />}>
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/chats" element={<ChatsPage />} />
-            <Route path="/chats/:chatId" element={<ChatBoard />} />
-          </Route>
+      <AuthenticationProvider>
+        <ChatProvider>
+          <NavigationProvider>
+            <Routes>
+              {/* Authenticated Routes */}
+              <Route element={<AuthenticatedLayout />}>
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/chats" element={<ChatsPage />} />
+                <Route path="/chats/:chatId" element={<ChatBoard />} />
+              </Route>
 
-          {/* Unauthenticated Routes */}
-          <Route element={<UnauthenticatedLayout />}>
-            <Route index element={<LoginPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          </Route>
+              {/* Unauthenticated Routes */}
+              <Route element={<UnauthenticatedLayout />}>
+                <Route index element={<LoginPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              </Route>
 
-          {/* Video Call Route */}
-          <Route path="/video-call/:videoId" element={<VideoCallBoard />} />
-        </Routes>
-      </NavigationProvider>
+              {/* Video Call Route */}
+              <Route path="/video-call/:videoId" element={<VideoCallBoard />} />
+            </Routes>
+          </NavigationProvider>
+        </ChatProvider>
+      </AuthenticationProvider>
     </Router>
   )
 }

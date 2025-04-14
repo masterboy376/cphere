@@ -1,38 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, VideoCameraIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { UserAvatar } from '../../components/chat/UserAvatar'
 import { MessageCard } from '../../components/chat/MessageCard'
+import chatBackendApiService from '../../services/chat/ChatBackendApiService'
+
+interface Message {
+  id: string
+  chat_id: string
+  sender_id: string
+  content: string
+  created_at: Date
+}
 
 export const ChatBoard = () => {
   const { chatId } = useParams()
   const navigate = useNavigate()
   const [newMessage, setNewMessage] = useState('')
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      text: 'Hey there!',
-      sender: 'other',
-      timestamp: new Date(Date.now() - 3600000)
-    },
-    // Add more messages...
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
 
   const handleVideoCall = () => {
     navigate(`/video-call/${chatId}`)
   }
 
   const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      setMessages([...messages, {
-        id: Date.now().toString(),
-        text: newMessage,
-        sender: 'me',
-        timestamp: new Date()
-      }])
-      setNewMessage('')
+    console.log('Sending message:', newMessage)
+  }
+
+  const fetchInitialMessages = async () => {
+    if (chatId) {
+      try {
+        const data = await chatBackendApiService.getMessages(chatId)
+        setMessages(data)
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+      }
     }
   }
+
+  useEffect(() => {
+    fetchInitialMessages()
+  }, [chatId])
+
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -62,9 +71,15 @@ export const ChatBoard = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
-        {messages.map(message => (
-          <MessageCard key={message.id} {...message} />
-        ))}
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-text-secondary">Start chatting.</p>
+          </div>
+        ) : (
+          messages.map(message => (
+            <MessageCard key={message.id} {...message} />
+          ))
+        )}
       </div>
 
       {/* Input Area */}

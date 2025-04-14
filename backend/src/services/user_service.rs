@@ -38,7 +38,7 @@ pub fn extract_user_id_from_session(session: &actix_session::Session) -> Result<
 }
 
 /// Search users by username or email (matching a search slice)
-pub async fn search_users(state: &AppState, query: &str) -> Result<Vec<User>, Error> {
+pub async fn search_users(state: &AppState, query: &str) -> Result<Vec<serde_json::Value>, Error> {
     let users_collection = state.db.collection::<User>(User::collection_name());
 
     // Match against both username and email using regex (case-insensitive)
@@ -54,10 +54,23 @@ pub async fn search_users(state: &AppState, query: &str) -> Result<Vec<User>, Er
         .await
         .map_err(|_| ErrorInternalServerError("Database error: Failed to search users"))?;
 
-    let results: Vec<User> = cursor
+    let users: Vec<User> = cursor
         .try_collect()
         .await
-        .map_err(|_| ErrorInternalServerError("Database error: Failed to collect users"))?;
+        .map_err(|e| {
+            eprintln!("Database error when collecting users: {}", e);
+            ErrorInternalServerError("Database error: Failed to collect users")
+        })?;
+
+    // Convert to simplified format with just id and username
+    let results = users.into_iter()
+        .map(|user| {
+            serde_json::json!({
+                "id": user.id.map_or_else(String::new, |id| id.to_string()),
+                "username": user.username
+            })
+        })
+        .collect();
 
     Ok(results)
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 
-type ChatCardType = {
+type ChatSummaryType = {
     id: string
     participantUsername: string
     participantUserId: string
@@ -8,22 +8,40 @@ type ChatCardType = {
     lastMessageTimestamp: Date
 }
 
+type ChatSummaryBackendType = {
+    id: string
+    participant_username: string
+    participant_user_id: string
+    last_message: string
+    last_message_timestamp: Date
+}
+
 type ChatContextType = {
-    chats: ChatCardType[]
-    addChat: (chat: ChatCardType) => void
+    chats: ChatSummaryType[]
+    setChats: (chats: ChatSummaryType[]) => void
+    addChat: (chat: ChatSummaryType) => void
     removeChat: (chatId: string) => void
+    toFrontendChatSummary: (chat: ChatSummaryBackendType) => ChatSummaryType
 }
 
 const ChatContext = createContext<ChatContextType>({
     chats: [],
     addChat: () => {},
-    removeChat: () => {}
+    setChats: () => {},
+    removeChat: () => {},
+    toFrontendChatSummary: () => ({
+        id: '',
+        participantUsername: '',
+        participantUserId: '',
+        lastMessage: '',
+        lastMessageTimestamp: new Date()
+    })
 })
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [chats, setChats] = useState<ChatCardType[]>([])
+    const [chats, setChats] = useState<ChatSummaryType[]>([])
 
-    const addChat = (chat: ChatCardType) => {
+    const addChat = (chat: ChatSummaryType) => {
         setChats(prevChats => [...prevChats, chat])
     }
 
@@ -31,8 +49,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setChats(prevChats => prevChats.filter(chat => chat.id !== chatId))
     }
 
+    const toFrontendChatSummary = (chat: ChatSummaryBackendType): ChatSummaryType => ({
+        id: chat.id,
+        participantUsername: chat.participant_username,
+        participantUserId: chat.participant_user_id,
+        lastMessage: chat.last_message,
+        lastMessageTimestamp: new Date(chat.last_message_timestamp)
+    })
+
     return (
-        <ChatContext.Provider value={{ chats, addChat, removeChat }}>
+        <ChatContext.Provider value={{ chats, addChat, setChats, removeChat, toFrontendChatSummary }}>
             {children}
         </ChatContext.Provider>
     )

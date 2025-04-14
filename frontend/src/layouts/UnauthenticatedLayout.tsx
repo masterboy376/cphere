@@ -10,8 +10,8 @@ export const UnauthenticatedLayout = () => {
     const checkUserAuthentication = async () => {
       try {
         const status = await authBackendApiService.authStatus();
+        setUserId(status.user_id);
         if (status.user_id) {
-          setUserId(status.user_id);
           window.location.href = '/chats';
         }
       } catch (error) {

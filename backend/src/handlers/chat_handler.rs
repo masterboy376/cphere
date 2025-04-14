@@ -17,18 +17,17 @@ pub async fn create_new_chat_handler(
     state: web::Data<AppState>,
     body: web::Json<CreateChatRoomRequest>,
 ) -> Result<HttpResponse, Error> {
+    
     // Get user ID from session
     let session = req.get_session();
     let user_id = extract_user_id_from_session(&session)?;
 
-    // Parse participant IDs
-    let mut participant_ids = body
-        .participant_ids
-        .iter()
-        .filter_map(|id| ObjectId::parse_str(id).ok())
-        .collect::<HashSet<ObjectId>>();
+    let participant_id = ObjectId::parse_str(&body.participant_id)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid participant ID format"))?;
 
-    // Add the creator to the participants if not already included
+    // Create a HashSet with the two participants
+    let mut participant_ids = HashSet::new();
+    participant_ids.insert(participant_id);
     participant_ids.insert(user_id.clone());
 
     // Create the chat room

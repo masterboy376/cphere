@@ -1,38 +1,38 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChatCard } from '../../components/chat/ChatCard'
 import { Footer } from '../../components/common/Footer'
-
-const mockChats = [
-  {
-    id: '1',
-    participantUsername: 'JohnDoe',
-    participantUserId: '123',
-    lastMessage: 'Hey, how are you?',
-    lastMessageTimestamp: new Date(Date.now() - 3600000)
-  },{
-    id: '2',
-    participantUsername: 'JohnDoe',
-    participantUserId: '123',
-    lastMessage: 'Hey, how are you?',
-    lastMessageTimestamp: new Date(Date.now() - 3600000)
-  },{
-    id: '3',
-    participantUsername: 'JohnDoe',
-    participantUserId: '123',
-    lastMessage: 'Hey, how are you?',
-    lastMessageTimestamp: new Date(Date.now() - 3600000)
-  },{
-    id: '4',
-    participantUsername: 'JohnDoe',
-    participantUserId: '123',
-    lastMessage: 'Hey, how are you?',
-    lastMessageTimestamp: new Date(Date.now() - 3600000)
-  },
-  // Add more mock chats...
-]
+import userBackendApiService from '../../services/user/UserBackendApiService'
+import { useChat } from '../../contexts/ChatContext'
+import { Loader } from '../../components/common/Loader'
 
 export const ChatsPage = () => {
-  const [chats] = useState(mockChats)
+  const { chats, setChats, toFrontendChatSummary } = useChat();
+  const [loading, setLoading] = useState(false);
+
+  // Fetch chats when component mounts
+  const fetchChats = async () => {
+    try {
+      setLoading(true);
+      setChats([]);
+      const response = await userBackendApiService.getChats();
+
+      if (response && Array.isArray(response)) {
+        // Transform backend data to frontend format and update context
+        const frontendChats = response.map(chat => toFrontendChatSummary(chat));
+
+        setChats(frontendChats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch chats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Call fetchChats when component mounts
+  useEffect(() => {
+    fetchChats();
+  }, []);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -42,15 +42,22 @@ export const ChatsPage = () => {
       </div>
 
       {/* main content */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {chats.length === 0 ? (
-          <div className="p-8 text-center text-text-secondary">No chats found</div>
-        ) : (
-          chats.map(chat => (
-            <ChatCard key={chat.id} {...chat} />
-          ))
-        )}
-      </div>
+      {loading ? (
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <Loader message="Loading chats..." />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {chats.length === 0 ? (
+            <div className="p-8 text-center text-text-secondary">No chats found</div>
+          ) : (
+            chats.map(chat => (
+              <ChatCard key={chat.id} {...chat} />
+            ))
+          )}
+        </div>
+      )}
+
 
       {/* footer */}
       <Footer />

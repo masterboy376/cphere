@@ -10,7 +10,7 @@ export interface UserIsBatchOnlinePayload {
 }
 
 export interface UserSearchQuery {
-    query: string
+    q: string
 }
 
 class UserBackendApiService extends BackendApiService {

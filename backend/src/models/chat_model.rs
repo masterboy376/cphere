@@ -7,19 +7,19 @@ pub struct Chat {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub participant_ids: Vec<ObjectId>,
-    pub created_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>
 }
 
 impl Chat {
     pub fn new(
         id: Option<ObjectId>,
         participant_ids: Vec<ObjectId>,
-        created_at: Option<DateTime<Utc>>,
+        created_at: Option<DateTime<Utc>>
     ) -> Self {
         Self {
             id,
             participant_ids,
-            created_at: created_at.unwrap_or_else(Utc::now),
+            created_at: created_at.unwrap_or_else(Utc::now)
         }
     }
 

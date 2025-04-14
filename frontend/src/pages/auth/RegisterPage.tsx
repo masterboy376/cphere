@@ -5,6 +5,7 @@ import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { UserIcon, LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import authBackendApiService, { AuthRegisterRequest } from '../../services/auth/AuthBackendApiService.ts'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 const registerSchema = z.object({
   username: z.string().min(2, "Username must be at least 2 characters").regex(/^\S*$/, "Username should not contain spaces"),
@@ -120,6 +121,12 @@ export const RegisterPage = () => {
           <p className={`mt-1 text-center text-sm ${formResponse.status === "success" ? "text-green-500" : "text-red-500"}`}>{formResponse.message}</p>
         )}
       </form>
+
+      <div className="mt-6 text-center text-sm text-text-secondary">
+        <Link to="/login" className="text-primary hover:text-primary-dark transition-colors">
+          ← Back to Login
+        </Link>
+      </div>
     </AuthFormWrapper>
   )
 }

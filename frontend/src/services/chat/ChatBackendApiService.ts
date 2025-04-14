@@ -2,7 +2,7 @@ import BackendApiService from "../BackendApiService";
 import { ENDPOINTS } from "../../constants/Api";
 
 export interface ChatsCreatePayload {
-  user_id: string
+  participant_id: string
 }
 
 export interface ChatsDeletePayload {

@@ -6,6 +6,7 @@ import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { LockClosedIcon } from '@heroicons/react/24/outline'
 import authBackendApiService, { AuthChangePasswordRequest } from '../../services/auth/AuthBackendApiService'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 const resetPasswordSchema = z
   .object({
@@ -45,7 +46,7 @@ export const ResetPasswordPage = () => {
     }
 
     try {
-      let payload: AuthChangePasswordRequest = {
+      const payload: AuthChangePasswordRequest = {
         reset_token: token,
         new_password: data.password,
       }
@@ -110,6 +111,12 @@ export const ResetPasswordPage = () => {
           <p className={`mt-1 text-center text-sm ${formResponse.status === "success" ? "text-green-500" : "text-red-500"}`}>{formResponse.message}</p>
         )}
       </form>
+
+      <div className="mt-6 text-center text-sm text-text-secondary">
+        <Link to="/login" className="text-primary hover:text-primary-dark transition-colors">
+          ← Back to Login
+        </Link>
+      </div>
     </AuthFormWrapper>
   )
 }

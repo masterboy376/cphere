@@ -45,7 +45,7 @@ export const ENDPOINTS = {
       method: 'get',
     },
     SEARCH: {
-      uri: '/users/search_users',
+      uri: '/search_users',
       method: 'get',
     },
     PROFILE: {
@@ -67,7 +67,7 @@ export const ENDPOINTS = {
       method: 'post',
     },
     MESSAGES: {
-      uri: (chat_id: string) => `/products/${chat_id}`,
+      uri: (chat_id: string) => `/chats/${chat_id}/messages`,
       method: 'get',
     },
   },
