@@ -2,15 +2,21 @@ import React from 'react'
 import { ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/solid'
 import authBackendApiService from '../../services/auth/AuthBackendApiService.ts' // Adjust the path as needed
 import { useNavigate } from 'react-router-dom'
+import wsService from '../../services/ws/WsService.ts'
+import { useAuthentication } from '../../contexts/AuthenticationContext.tsx'
 
 
 interface LogoutButtonProps { }
 
 const LogoutButton: React.FC<LogoutButtonProps> = () => {
     const navigate = useNavigate()
+    const { setAuthState } = useAuthentication()
+
     const handleLogout = async () => {
         try {
             await authBackendApiService.logout()
+            wsService.sendMessage({ type: 'logout' });
+            setAuthState({userId: null, username: null})
             navigate('/login')
         } catch (error) {
             console.error('Logout failed', error)

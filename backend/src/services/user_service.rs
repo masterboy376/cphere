@@ -104,5 +104,10 @@ pub async fn get_user_data(
 /// Check if a user is online, based on ws_sessions stored in the AppState.
 pub async fn is_user_online(state: &AppState, user_id: ObjectId) -> bool {
     let ws_sessions = state.ws_sessions.read().await;
-    ws_sessions.contains_key(&user_id)
+    if let Some(existing_session) = ws_sessions.get(&user_id) {
+        existing_session.connected()
+    }
+    else {
+        false
+    }
 }

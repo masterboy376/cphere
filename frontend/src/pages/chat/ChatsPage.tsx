@@ -2,37 +2,58 @@ import { useEffect, useState } from 'react'
 import { ChatCard } from '../../components/chat/ChatCard'
 import { Footer } from '../../components/common/Footer'
 import userBackendApiService from '../../services/user/UserBackendApiService'
-import { useChat } from '../../contexts/ChatContext'
+import { useChat, ChatSummaryType } from '../../contexts/ChatContext'
 import { Loader } from '../../components/common/Loader'
+import { ChatMessage } from '../../types/WsMessageTypes'
+import wsService from '../../services/ws/WsService'
 
 export const ChatsPage = () => {
-  const { chats, setChats, toFrontendChatSummary } = useChat();
-  const [loading, setLoading] = useState(false);
+  const { chats, setChats, addChat, toFrontendChatSummary } = useChat()
+  const [loading, setLoading] = useState(false)
 
-  // Fetch chats when component mounts
-  const fetchChats = async () => {
-    try {
-      setLoading(true);
-      setChats([]);
-      const response = await userBackendApiService.getChats();
-
-      if (response && Array.isArray(response)) {
-        // Transform backend data to frontend format and update context
-        const frontendChats = response.map(chat => toFrontendChatSummary(chat));
-
-        setChats(frontendChats);
-      }
-    } catch (error) {
-      console.error('Failed to fetch chats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Call fetchChats when component mounts
   useEffect(() => {
-    fetchChats();
-  }, []);
+    const fetchChats = async () => {
+      try {
+        setLoading(true)
+        setChats([])
+        const response = await userBackendApiService.getChats()
+
+        if (response && Array.isArray(response)) {
+          // Transform backend data to frontend format and update context
+          const frontendChats = response.map(chat => toFrontendChatSummary(chat))
+
+          let isOnline = await userBackendApiService.isOnline(frontendChats[0].participantUserId)
+          console.log('User is online:', isOnline)
+          setChats(frontendChats)
+        }
+      } catch (error) {
+        console.error('Failed to fetch chats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const chatUpdateListener = async (message: ChatMessage) => {
+      if (message.created_at) {
+        const newChat: ChatSummaryType = {
+          id: message.chat_id,
+          participantUserId: message.sender_id,
+          participantUsername: message.sender_username,
+          lastMessage: message.content,
+          lastMessageTimestamp: new Date(message.created_at)
+        }
+        addChat(newChat)
+        console.log('Chat updated:', newChat)
+      }
+    }
+
+    fetchChats()
+    wsService.addEventListener('chat_update', chatUpdateListener)
+
+    return () => {
+      wsService.removeEventListener('chat_update', chatUpdateListener)
+    }
+  }, [])
 
   return (
     <div className="flex flex-col h-full min-h-0">

@@ -3,41 +3,11 @@ import { Bars3Icon, BellIcon } from '@heroicons/react/24/outline'
 import { useNavigation } from '../../contexts/NavigationContext'
 
 import { NotificationDrawer } from '../notification/NotificationDrawer'
-
-import { Notification } from '../notification/NotificationCard'
 import LogoutButton from '../button/LogoutButton'
 
 export const TopNavigationBar: FC = () => {
   const { toggleSidebar } = useNavigation()
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'friend-request',
-      senderName: 'John Doe',
-      senderId: '123',
-      timestamp: new Date(),
-      read: false,
-      message: 'Hey, let\'s connect!'
-    },
-    {
-      id: '2',
-      type: 'video-call',
-      callerName: 'Jane Smith',
-      callerId: '456',
-      callType: 'video',
-      timestamp: new Date(),
-      read: false
-    }
-  ])
-
-  const handleAccept = (notification: Notification) => {
-    // Handle accept logic
-  }
-
-  const handleDecline = (notification: Notification) => {
-    // Handle decline logic
-  }
 
   return (
     <header className="sticky top-0 bg-background-paper z-50">
@@ -69,7 +39,6 @@ export const TopNavigationBar: FC = () => {
           <NotificationDrawer
             isOpen={isNotificationsOpen}
             onClose={() => setIsNotificationsOpen(false)}
-            notifications={notifications}
           />
         </div>
       </nav>

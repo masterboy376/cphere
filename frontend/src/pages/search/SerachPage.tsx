@@ -18,16 +18,22 @@ export const SearchPage = () => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<UserResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const { userId } = useAuthentication()
+  const { authState } = useAuthentication()
 
   const searchUsers = async () => {
     if (query.length < 3) return
 
     setIsLoading(true)
     try {
+      // if (!userId) {
+      //   console.error('User ID is not available')
+      //   return
+      // }
+      // let isOnline = await userBackendApiService.isOnline(userId)
+      // console.log('User is online:', isOnline)
       const payload: UserSearchQuery = { 'q': query }
       const data = await userBackendApiService.search(payload)
-      const filteredResults = data.filter((user: UserResult) => user.id !== userId)
+      const filteredResults = data.filter((user: UserResult) => user.id !== authState.userId)
       setResults(filteredResults)
     } catch (error) {
       console.error('Search failed:', error)

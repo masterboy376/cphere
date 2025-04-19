@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-
 import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import authBackendApiService, { AuthLoginRequest } from '../../services/auth/AuthBackendApiService.ts'
+import { useAuthentication } from '../../contexts/AuthenticationContext.tsx'
 
 const loginSchema = z.object({
   username: z.string().min(2, "Username must be at least 2 characters").regex(/^\S*$/, "Username should not contain spaces"),
@@ -23,27 +23,29 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const [formResponse, setFormResponse] = useState<{ status: string, message: string } | null>(null)
+  const { setAuthState } = useAuthentication()
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onLogin = async (formData: LoginFormData) => {
     setLoading(true)
     setFormResponse(null)
     try {
       const payload: AuthLoginRequest = {
-        username: data.username,
-        password: data.password
+        username: formData.username,
+        password: formData.password
       }
       // Call the login API; ensure your authBackendApiService.login is correctly implemented
-      const response = await authBackendApiService.login(payload)
+      const data = await authBackendApiService.login(payload)
+      // wsService.connect()
+      setAuthState({ userId: data.user_id, username: data.username })
       setFormResponse({
         "status": "success",
-        "message": response?.data || "Authentication successful!"
+        "message": "Authentication successful!"
       })
-      // Redirect the user to a protected route or dashboard upon success
       navigate('/chats')
     } catch (err: any) {
       setFormResponse({
         "status": "error",
-        "message": err.response?.data?.message || "Authentication failed!"
+        "message": "Authentication failed!"
       })
     } finally {
       setLoading(false)
@@ -55,7 +57,7 @@ export const LoginPage = () => {
       title="Welcome Back"
       subtitle="Please sign in to continue"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onLogin)} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">
             Username

@@ -28,7 +28,7 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
   const handleVideoCall = () => {
     navigate(`/video-call/${id}`)
   }
-  
+
   const handleDeleteChat = async () => {
     const payload: ChatsDeletePayload = {
       chat_id: id
@@ -45,7 +45,7 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
   const handleClickOutsideMenu = (event: MouseEvent) => {
     // Check if click is outside both menu and button
     if (
-      menuRef.current && 
+      menuRef.current &&
       !menuRef.current.contains(event.target as Node) &&
       menuButtonRef.current &&
       !menuButtonRef.current.contains(event.target as Node)
@@ -82,13 +82,13 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
       </div>
 
       <div className="relative">
-        <button 
+        <button
           ref={menuButtonRef}
           onClick={(e) => {
             e.stopPropagation()
             setIsMenuOpen(!isMenuOpen)
           }}
-          className= "p-2 rounded-full hover:bg-background-lite transition-all duration-300 ease-in-out"
+          className="p-2 rounded-full hover:bg-background-lite transition-all duration-300 ease-in-out"
         >
           <EllipsisVerticalIcon className="h-6 w-6" />
         </button>

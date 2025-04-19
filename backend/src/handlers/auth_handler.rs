@@ -3,6 +3,7 @@ use crate::{
         authenticate_user, change_password, logout_user, register_user, send_reset_password_email,
         ChangePasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest,
     },
+    models::user_model::User,
     states::app_state::AppState,
 };
 use actix_session::Session;
@@ -19,7 +20,11 @@ pub async fn register_handler(
     if let Some(user_id) = &user.id {
         session.insert("user_id", &user_id.to_hex())?;
         session.renew();
-        Ok(HttpResponse::Ok().json("Registered successful"))
+        let result = serde_json::json!({
+            "user_id": user_id.to_string(),
+            "username": user.username
+        });
+        Ok(HttpResponse::Ok().json(result))
     } else {
         Err(actix_web::error::ErrorUnauthorized("Invalid user ID"))
     }
@@ -37,7 +42,11 @@ pub async fn login_handler(
     if let Some(user_id) = &user.id {
         session.insert("user_id", &user_id.to_hex())?;
         session.renew();
-        Ok(HttpResponse::Ok().json("Login successful"))
+        let result = serde_json::json!({
+            "user_id": user_id.to_string(),
+            "username": user.username
+        });
+        Ok(HttpResponse::Ok().json(result))
     } else {
         Err(actix_web::error::ErrorUnauthorized("Invalid user ID"))
     }
@@ -50,14 +59,38 @@ pub async fn logout_handler(session: Session) -> Result<HttpResponse, Error> {
 }
 
 #[get("/auth_status")]
-pub async fn auth_status_handler(session: Session) -> Result<HttpResponse, Error> {
+pub async fn auth_status_handler(
+    state: web::Data<AppState>,
+    session: Session
+) -> Result<HttpResponse, Error> {
     if let Ok(Some(user_id)) = session.get::<String>("user_id") {
-        Ok(HttpResponse::Ok().json(serde_json::json!({
-            "user_id": user_id
-        })))
+        // Retrieve user from database to get the username
+        let user_obj_id = mongodb::bson::oid::ObjectId::parse_str(&user_id)
+            .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID format"))?;
+            
+        let user: Option<User> = state.db.collection("users")
+            .find_one(mongodb::bson::doc! { "_id": user_obj_id }, None)
+            .await
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+            
+        if let Some(user) = user {
+            let username = user.username.clone();
+            
+            Ok(HttpResponse::Ok().json(serde_json::json!({
+                "user_id": user_id,
+                "username": username
+            })))
+        } else {
+            session.purge();
+            Ok(HttpResponse::Ok().json(serde_json::json!({
+                "user_id": null,
+                "username": null
+            })))
+        }
     } else {
         Ok(HttpResponse::Ok().json(serde_json::json!({
-            "user_id": null
+            "user_id": null,
+            "username": null
         })))
     }
 }

@@ -42,6 +42,12 @@ class ChatBackendApiService extends BackendApiService {
       ENDPOINTS.CHATS.MESSAGES.uri(chatId));
     return response.data;
   }
+
+  public async getSummary(chatId: string): Promise<any> {
+    const response = await this.axiosInstance.get(
+      ENDPOINTS.CHATS.SUMMARY.uri(chatId));
+    return response.data;
+  }
 }
 
 export default new ChatBackendApiService();

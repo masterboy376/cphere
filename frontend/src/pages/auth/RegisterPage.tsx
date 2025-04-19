@@ -5,7 +5,8 @@ import { AuthFormWrapper } from '../../wrappers/AuthFormWrapper'
 import { UserIcon, LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import authBackendApiService, { AuthRegisterRequest } from '../../services/auth/AuthBackendApiService.ts'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuthentication } from '../../contexts/AuthenticationContext.tsx'
 
 const registerSchema = z.object({
   username: z.string().min(2, "Username must be at least 2 characters").regex(/^\S*$/, "Username should not contain spaces"),
@@ -23,28 +24,31 @@ export const RegisterPage = () => {
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema)
   })
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [formResponse, setFormResponse] = useState<{ status: string, message: string } | null>(null)
+  const { setAuthState } = useAuthentication()
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (formData: RegisterFormData) => {
     setLoading(true)
     setFormResponse(null)
     try {
       const payload: AuthRegisterRequest = {
-        username: data.username,
-        email: data.email,
-        password: data.password
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
       }
-      const response = await authBackendApiService.register(payload)
+      const data = await authBackendApiService.register(payload)
+      setAuthState({ userId: data.user_id, username: data.username })
       setFormResponse({
         "status": "success",
-        "message": response?.message || "Registration successful!"
+        "message": "Registration successful!"
       })
-      // Redirect user or show success message
+      navigate('/chats')
     } catch (err: any) {
       setFormResponse({
         "status": "error",
-        "message": err.response?.data?.message || "Registration failed!"
+        "message": "Registration failed!"
       })
     } finally {
       setLoading(false)

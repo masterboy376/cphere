@@ -42,7 +42,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [chats, setChats] = useState<ChatSummaryType[]>([])
 
     const addChat = (chat: ChatSummaryType) => {
-        setChats(prevChats => [...prevChats, chat])
+        setChats(prevChats => {
+            // Filter out the chat if it already exists
+            const filteredChats = prevChats.filter(c => c.id !== chat.id);
+            // Add the new chat at the beginning (most recent first)
+            return [chat, ...filteredChats];
+        });
     }
 
     const removeChat = (chatId: string) => {
@@ -65,3 +70,4 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 }
 
 export const useChat = () => useContext(ChatContext)
+export type { ChatSummaryType }

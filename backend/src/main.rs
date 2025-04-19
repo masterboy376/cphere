@@ -14,7 +14,7 @@ use cphere_backend::{
             reset_password_handler,
         },
         chat_handler::{
-            create_new_chat_handler, get_chat_messages_handler, send_message_handler, delete_chat_handler
+            create_new_chat_handler, get_chat_messages_handler, send_message_handler, delete_chat_handler, get_chat_summary_handler
         },
         ws_handler::ws_session_start_handler,
         user_handler::{
@@ -99,7 +99,7 @@ async fn main() -> std::io::Result<()> {
                 )
                 .service(search_users_handler)
                 .service(
-                    web::scope("/socket")
+                    web::scope("/websocket")
                         .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
                         .service(ws_session_start_handler),
                 )
@@ -116,6 +116,7 @@ async fn main() -> std::io::Result<()> {
                     web::scope("/chats")
                         .wrap(AuthMiddlewareFactory {}) // Instantiate the middleware
                         .service(create_new_chat_handler)
+                        .service(get_chat_summary_handler)
                         .service(delete_chat_handler)
                         .service(send_message_handler)
                         .service(get_chat_messages_handler),

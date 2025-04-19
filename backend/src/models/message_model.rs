@@ -13,13 +13,16 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn new(chat_id: ObjectId, sender_id: ObjectId, content: &str) -> Self {
+    pub fn new(chat_id: ObjectId, sender_id: ObjectId, content: &str, created_at: Option<DateTime<Utc>>) -> Self {
         Self {
             id: None,
             chat_id,
             sender_id,
             content: content.to_owned(),
-            created_at: Utc::now(),
+            created_at: match created_at {
+                Some(dt) => dt,
+                None => Utc::now(),
+            }
         }
     }
 

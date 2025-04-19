@@ -10,8 +10,8 @@ interface MessageCardProps {
 }
 
 export const MessageCard = ({ sender_id, content, created_at }: MessageCardProps) => {
-  const { userId } = useAuthentication()
-  const isMe = sender_id === userId
+  const { authState } = useAuthentication()
+  const isMe = sender_id === authState.userId
 
   return (
     <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>

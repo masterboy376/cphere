@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { VideoCameraSlashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { VideoCallResponse } from '../../types/WsMessageTypes'
+import wsService from '../../services/ws/WsService'
+
 
 export const VideoCallBoard = () => {
+  const { particitantId } = useParams()
   const navigate = useNavigate()
   const [callStatus, setCallStatus] = useState('calling')
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
@@ -12,6 +16,19 @@ export const VideoCallBoard = () => {
 
   // Initialize local media
   useEffect(() => {
+    const videoCallAceptedListener = (message: VideoCallResponse) => {
+      if (message.type === 'video_call_accepted') {
+        setCallStatus('connected')
+      }
+    }
+
+    const videoCallDeclinedListener = (message: VideoCallResponse) => {
+      if (message.type === 'video_call_declined') {
+        setCallStatus('declined')
+        navigate(-1)
+      }
+    }
+
     const initLocalMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -56,10 +73,14 @@ export const VideoCallBoard = () => {
     }
 
     initLocalMedia()
+    wsService.addEventListener('video_call_accepted', videoCallAceptedListener)
+    wsService.addEventListener('video_call_declined', videoCallDeclinedListener)
 
     return () => {
       peerConnection?.close()
       localVideoRef.current?.srcObject?.getTracks().forEach(track => track.stop())
+      wsService.removeEventListener('video_call_accepted', videoCallAceptedListener)
+      wsService.removeEventListener('video_call_declined', videoCallDeclinedListener)
     }
   }, [])
 

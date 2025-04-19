@@ -1,20 +1,20 @@
 import { createContext, useContext, useState, Dispatch, SetStateAction } from 'react'
 
 type AuthenticationContextType = {
-  userId: null | string
-  setUserId: Dispatch<SetStateAction<string | null>>
+  authState: { userId: string | null, username: string | null } 
+  setAuthState: Dispatch<SetStateAction<{ userId: string | null, username: string | null } >>
 }
 
 const AuthenticationContext = createContext<AuthenticationContextType>({
-    userId: null,
-    setUserId: () => {}
+    authState: { userId: null, username: null },
+    setAuthState: () => {}
 })
 
 export const AuthenticationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userId, setUserId] = useState<null | string>(null)
-
+  const [authState, setAuthState] = useState<{ userId: string | null, username: string | null }>({ userId: null, username: null });
+ 
   return (
-    <AuthenticationContext.Provider value={{ userId, setUserId }}>
+    <AuthenticationContext.Provider value={{ authState, setAuthState }}>
       {children}
     </AuthenticationContext.Provider>
   )

@@ -5,12 +5,12 @@ import authBackendApiService from '../services/auth/AuthBackendApiService'
 import { useAuthentication } from '../contexts/AuthenticationContext'
 
 export const UnauthenticatedLayout = () => {
-  const { setUserId } = useAuthentication()
+  const { setAuthState } = useAuthentication()
   useEffect(() => {
     const checkUserAuthentication = async () => {
       try {
         const status = await authBackendApiService.authStatus();
-        setUserId(status.user_id);
+        setAuthState({userId: status.user_id, username: status.username});
         if (status.user_id) {
           window.location.href = '/chats';
         }

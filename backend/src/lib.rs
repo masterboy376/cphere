@@ -10,4 +10,5 @@ pub mod utils;
 pub mod websocket;
 pub mod states;
 pub mod constants;
+pub mod types;
 // ... other modules

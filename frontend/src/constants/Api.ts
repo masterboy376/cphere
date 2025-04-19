@@ -1,3 +1,4 @@
+export const WEBSOCKET_URL = 'ws://localhost:8080/websocket/connect';
 export const API_BASE_URL = 'http://localhost:8080/';
 
 export const ENDPOINTS = {
@@ -70,6 +71,10 @@ export const ENDPOINTS = {
       uri: (chat_id: string) => `/chats/${chat_id}/messages`,
       method: 'get',
     },
+    SUMMARY: {
+      uri: (chat_id: string) => `/chats/${chat_id}/get_chat_summary`,
+      method: 'get',
+    },
   },
   VIDEO_CALL: {
     INITIATE: {
@@ -81,9 +86,9 @@ export const ENDPOINTS = {
       method: 'post',
     },
   },
-  SOCKET: {
+  WEBSOCKET: {
     CONNECT: {
-      uri: '/socket/connect',
+      uri: '/websocket/connect',
       method: 'get',
     },
   },
