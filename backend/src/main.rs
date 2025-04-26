@@ -18,7 +18,7 @@ use cphere_backend::{
         },
         ws_handler::ws_session_start_handler,
         user_handler::{
-            check_batch_online_handler, check_online_handler, get_chats_handler, get_my_data_handler, get_notifications_handler, search_users_handler
+            check_batch_online_handler, check_online_handler, get_chats_handler, get_user_details_handler, get_notifications_handler, search_users_handler
         },
         video_call_handler::{initiate_video_call, respond_video_call},
     },
@@ -110,7 +110,7 @@ async fn main() -> std::io::Result<()> {
                         .service(check_online_handler)
                         .service(check_batch_online_handler)
                         .service(get_notifications_handler)
-                        .service(get_my_data_handler)
+                        .service(get_user_details_handler)
                 )
                 .service(
                     web::scope("/chats")

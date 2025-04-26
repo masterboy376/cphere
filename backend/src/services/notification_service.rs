@@ -82,22 +82,6 @@ pub async fn get_user_notifications(
     Ok(summaries)
 }
 
-/// Retrieve a notification by its ID.
-pub async fn get_notification_by_id(
-    state: &AppState,
-    notification_id: ObjectId,
-) -> Result<Notification, Error> {
-    let notifications_collection = state
-        .db
-        .collection::<Notification>(Notification::collection_name());
-    let notification = notifications_collection
-        .find_one(doc! { "_id": notification_id }, None)
-        .await
-        .map_err(|_| ErrorInternalServerError("Failed to find notification"))?
-        .ok_or_else(|| ErrorInternalServerError("Notification not found"))?;
-    Ok(notification)
-}
-
 /// Create a new notification.
 pub async fn create_notification(
     state: &AppState,

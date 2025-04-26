@@ -25,12 +25,6 @@ export const SearchPage = () => {
 
     setIsLoading(true)
     try {
-      // if (!userId) {
-      //   console.error('User ID is not available')
-      //   return
-      // }
-      // let isOnline = await userBackendApiService.isOnline(userId)
-      // console.log('User is online:', isOnline)
       const payload: UserSearchQuery = { 'q': query }
       const data = await userBackendApiService.search(payload)
       const filteredResults = data.filter((user: UserResult) => user.id !== authState.userId)
@@ -46,11 +40,12 @@ export const SearchPage = () => {
     try {
       const payload: ChatsCreatePayload = { participant_id: userId }
       const data = await chatBackendApiService.create(payload)
-
-      console.log(data)
       
-      const chatId = await data.id
-      navigate(`/chats/${chatId}`)
+      if (data && data.id) {
+        navigate(`/chats/${data.id}`)
+      } else {
+        console.error('No chat ID returned from API')
+      }
     } catch (error) {
       console.error('Failed to start chat:', error)
     }

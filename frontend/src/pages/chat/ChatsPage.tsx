@@ -4,11 +4,11 @@ import { Footer } from '../../components/common/Footer'
 import userBackendApiService from '../../services/user/UserBackendApiService'
 import { useChat, ChatSummaryType } from '../../contexts/ChatContext'
 import { Loader } from '../../components/common/Loader'
-import { ChatMessage } from '../../types/WsMessageTypes'
+import { ChatMessage, DeleteChat } from '../../types/WsMessageTypes'
 import wsService from '../../services/ws/WsService'
 
 export const ChatsPage = () => {
-  const { chats, setChats, addChat, toFrontendChatSummary } = useChat()
+  const { chats, setChats, addChat, removeChat, toFrontendChatSummary } = useChat()
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -22,8 +22,6 @@ export const ChatsPage = () => {
           // Transform backend data to frontend format and update context
           const frontendChats = response.map(chat => toFrontendChatSummary(chat))
 
-          let isOnline = await userBackendApiService.isOnline(frontendChats[0].participantUserId)
-          console.log('User is online:', isOnline)
           setChats(frontendChats)
         }
       } catch (error) {
@@ -43,15 +41,20 @@ export const ChatsPage = () => {
           lastMessageTimestamp: new Date(message.created_at)
         }
         addChat(newChat)
-        console.log('Chat updated:', newChat)
       }
+    }
+
+    const deleteChatListener = (message: DeleteChat) => {
+      removeChat(message.chat_id)
     }
 
     fetchChats()
     wsService.addEventListener('chat_update', chatUpdateListener)
+    wsService.addEventListener('delete_chat', deleteChatListener)
 
     return () => {
       wsService.removeEventListener('chat_update', chatUpdateListener)
+      wsService.removeEventListener('delete_chat', deleteChatListener)
     }
   }, [])
 

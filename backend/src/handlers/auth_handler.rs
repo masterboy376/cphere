@@ -1,9 +1,8 @@
 use crate::{
     services::auth_service::{
-        authenticate_user, change_password, logout_user, register_user, send_reset_password_email,
-        ChangePasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest,
+        authenticate_user, change_password, logout_user, register_user, send_reset_password_email, auth_status,
+        ChangePasswordRequest, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResetPasswordRequest,
     },
-    models::user_model::User,
     states::app_state::AppState,
 };
 use actix_session::Session;
@@ -20,13 +19,15 @@ pub async fn register_handler(
     if let Some(user_id) = &user.id {
         session.insert("user_id", &user_id.to_hex())?;
         session.renew();
-        let result = serde_json::json!({
-            "user_id": user_id.to_string(),
-            "username": user.username
-        });
-        Ok(HttpResponse::Ok().json(result))
+        let result = RegisterResponse {
+            user_id: user_id.to_string(),
+            username: user.username
+        };
+        let response = serde_json::json!(result);
+        
+        Ok(HttpResponse::Ok().json(response))
     } else {
-        Err(actix_web::error::ErrorUnauthorized("Invalid user ID"))
+        Err(actix_web::error::ErrorUnauthorized("Failed to resister user"))
     }
 }
 
@@ -42,11 +43,12 @@ pub async fn login_handler(
     if let Some(user_id) = &user.id {
         session.insert("user_id", &user_id.to_hex())?;
         session.renew();
-        let result = serde_json::json!({
-            "user_id": user_id.to_string(),
-            "username": user.username
-        });
-        Ok(HttpResponse::Ok().json(result))
+        let result = LoginResponse{
+            user_id: user_id.to_string(),
+            username: user.username
+        };
+        let response = serde_json::json!(result);
+        Ok(HttpResponse::Ok().json(response))
     } else {
         Err(actix_web::error::ErrorUnauthorized("Invalid user ID"))
     }
@@ -54,8 +56,8 @@ pub async fn login_handler(
 
 #[post("/logout")]
 pub async fn logout_handler(session: Session) -> Result<HttpResponse, Error> {
-    logout_user(&session).await?;
-    Ok(HttpResponse::Ok().json("Logged out successfully"))
+    let result = logout_user(&session).await?;
+    Ok(HttpResponse::Ok().json(result))
 }
 
 #[get("/auth_status")]
@@ -63,36 +65,8 @@ pub async fn auth_status_handler(
     state: web::Data<AppState>,
     session: Session
 ) -> Result<HttpResponse, Error> {
-    if let Ok(Some(user_id)) = session.get::<String>("user_id") {
-        // Retrieve user from database to get the username
-        let user_obj_id = mongodb::bson::oid::ObjectId::parse_str(&user_id)
-            .map_err(|_| actix_web::error::ErrorBadRequest("Invalid user ID format"))?;
-            
-        let user: Option<User> = state.db.collection("users")
-            .find_one(mongodb::bson::doc! { "_id": user_obj_id }, None)
-            .await
-            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-            
-        if let Some(user) = user {
-            let username = user.username.clone();
-            
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "user_id": user_id,
-                "username": username
-            })))
-        } else {
-            session.purge();
-            Ok(HttpResponse::Ok().json(serde_json::json!({
-                "user_id": null,
-                "username": null
-            })))
-        }
-    } else {
-        Ok(HttpResponse::Ok().json(serde_json::json!({
-            "user_id": null,
-            "username": null
-        })))
-    }
+    let result = auth_status(&state, &session).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!(result)))
 }
 
 #[post("/reset_password")]

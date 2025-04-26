@@ -29,7 +29,7 @@ export const NotificationDrawer = ({
     }
     videoBackendApiService.respond(payload);
     removeNotification(notification.id)
-    navigate(`/video-call/${notification.senderId}`) 
+    navigate(`/video-call/${notification.senderId}`, { state: { accepted: true } }) 
   }
 
   const onDecline = (notification: NotificationSummaryType) => {

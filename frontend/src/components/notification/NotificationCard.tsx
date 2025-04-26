@@ -28,7 +28,7 @@ export const NotificationCard = ({
           <div className="text-sm text-text-primary">
             {notification.type === 'video_call' && 
               <>
-                <span className="font-medium">{notification.senderUserame}</span> sent you a friend request
+                <span className="font-medium">{notification.senderUserame}</span>
                 {notification.message && (
                   <p className="mt-1 text-text-secondary">{notification.message}</p>
                 )}

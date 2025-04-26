@@ -22,6 +22,16 @@ pub struct BatchCheckOnlineResponse {
     pub online_status: Vec<(String, bool)>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UserDetailsRequest {
+    pub user_id: ObjectId,
+}
+#[derive(Debug, Serialize)]
+pub struct UserDetailsResponse {
+    pub user_id: String,
+    pub username: String,
+}
+
 /// Extract the user ID from the session.
 pub fn extract_user_id_from_session(session: &actix_session::Session) -> Result<ObjectId, Error> {
     let user_id_str = match session.get::<String>("user_id") {
@@ -29,8 +39,7 @@ pub fn extract_user_id_from_session(session: &actix_session::Session) -> Result<
         Ok(None) => {
             return Err(actix_web::error::ErrorUnauthorized("Not authenticated"));
         }
-        Err(e) => {
-            eprintln!("Session error: {}", e);
+        Err(_) => {
             return Err(actix_web::error::ErrorInternalServerError("Session error"));
         }
     };
@@ -57,8 +66,7 @@ pub async fn search_users(state: &AppState, query: &str) -> Result<Vec<serde_jso
     let users: Vec<User> = cursor
         .try_collect()
         .await
-        .map_err(|e| {
-            eprintln!("Database error when collecting users: {}", e);
+        .map_err(|_| {
             ErrorInternalServerError("Database error: Failed to collect users")
         })?;
 
@@ -89,22 +97,22 @@ pub async fn get_user_by_id(state: &AppState, user_id: ObjectId) -> Result<User,
 /// Get user data excluding sensitive fields like password_hash using the user id in the session.
 pub async fn get_user_data(
     state: &AppState,
-    session: &actix_session::Session
+    user_id: ObjectId
 ) -> Result<serde_json::Value, Error> {
-    let user_id = extract_user_id_from_session(session)?;
     let user = get_user_by_id(state, user_id).await?;
-    let mut user_json = serde_json::to_value(user)
-        .map_err(|_| ErrorInternalServerError("Serialization error"))?;
-    if let Some(obj) = user_json.as_object_mut() {
-        obj.remove("password_hash");
-    }
+    let user_id = user.id.ok_or_else(|| ErrorInternalServerError("User found with null ID"))?;
+    let result = UserDetailsResponse {
+        user_id: user_id.to_string(),
+        username: user.username.clone(),
+    };
+    let user_json = serde_json::json!(result);
     Ok(user_json)
 }
 
 /// Check if a user is online, based on ws_sessions stored in the AppState.
 pub async fn is_user_online(state: &AppState, user_id: ObjectId) -> bool {
     let ws_sessions = state.ws_sessions.read().await;
-    if let Some(existing_session) = ws_sessions.get(&user_id) {
+    if let Some((existing_session, _)) = ws_sessions.get(&user_id) {
         existing_session.connected()
     }
     else {

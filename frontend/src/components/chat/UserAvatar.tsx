@@ -14,7 +14,7 @@ interface UserAvatarProps {
       <div
         className={`${sizeClasses[size]} bg-primary rounded-full flex items-center justify-center text-white font-medium`}
       >
-        {username[0].toUpperCase()}
+        {username ? username[0].toUpperCase() : ''}
       </div>
     )
   }

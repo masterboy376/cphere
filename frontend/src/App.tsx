@@ -43,7 +43,7 @@ function App() {
                 </Route>
 
                 {/* Video Call Route */}
-                <Route path="/video-call/:videoId" element={<VideoCallBoard />} />
+                <Route path="/video-call/:remoteUserId" element={<VideoCallBoard />} />
               </Routes>
             </NotificationProvider>
           </NavigationProvider>

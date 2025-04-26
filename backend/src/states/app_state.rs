@@ -1,6 +1,7 @@
 use crate::websocket::websocket_session::WsSession;
 use actix::Addr;
 use mongodb::{bson::oid::ObjectId, Client, Database};
+use uuid::Uuid;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -8,7 +9,7 @@ use std::{
 use tokio::sync::RwLock;
 
 pub struct AppState {
-    pub ws_sessions: Arc<RwLock<HashMap<ObjectId, Addr<WsSession>>>>,
+    pub ws_sessions: Arc<RwLock<HashMap<ObjectId, (Addr<WsSession>, Uuid)>>>,
     pub chats: Arc<RwLock<HashMap<String, HashSet<ObjectId>>>>,
     pub mongo_client: Client,
     pub db: Database,

@@ -4,7 +4,7 @@ use crate::{
         notification_service::get_user_notifications,
         user_service::{
             extract_user_id_from_session, get_user_data, is_user_online, search_users,
-            BatchCheckOnlineRequest, BatchCheckOnlineResponse,
+            BatchCheckOnlineRequest, BatchCheckOnlineResponse, UserDetailsRequest
         },
     },
     states::app_state::AppState,
@@ -58,10 +58,8 @@ pub async fn get_chats_handler(
     req: HttpRequest,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    // Get user ID from session
     let session = req.get_session();
     let user_id = extract_user_id_from_session(&session)?;
-    // Get the user's chats
     let results = get_user_chats(&state, user_id).await?;
 
     Ok(HttpResponse::Ok().json(results))
@@ -72,10 +70,8 @@ pub async fn get_notifications_handler(
     req: HttpRequest,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    // Get user ID from session
     let session = req.get_session();
     let user_id = extract_user_id_from_session(&session)?;
-    // Get the user's notifications
     let results = get_user_notifications(&state, user_id).await?;
 
     Ok(HttpResponse::Ok().json(results))
@@ -91,20 +87,18 @@ pub async fn search_users_handler(
         .get("q")
         .ok_or_else(|| actix_web::error::ErrorBadRequest("Missing search query parameter 'q'"))?;
 
-    // Call the user service to perform the search.
     let results = search_users(&state, q).await?;
     Ok(HttpResponse::Ok().json(results))
 }
 
-// Fetch logged-in user’s data using session information
-#[get("/profile")]
-pub async fn get_my_data_handler(
-    req: HttpRequest,
+#[post("/details")]
+pub async fn get_user_details_handler(
     state: web::Data<AppState>,
+    body: web::Json<UserDetailsRequest>
 ) -> Result<HttpResponse, Error> {
-    let session = req.get_session();
+    let user_id = body.user_id.clone();
 
-    // Call the user service to get the user's data.
-    let user_json = get_user_data(&state, &session).await?;
+    let user_json = get_user_data(&state, user_id).await?;
     Ok(HttpResponse::Ok().json(user_json))
 }
+

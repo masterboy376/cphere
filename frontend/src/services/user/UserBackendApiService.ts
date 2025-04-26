@@ -1,16 +1,21 @@
 import BackendApiService from '../BackendApiService';
 import { ENDPOINTS } from '../../constants/Api';
 
-export interface UserIsOnlinePath {
-    user_id: string
-}
-
 export interface UserIsBatchOnlinePayload {
     user_ids: string[]
 }
 
 export interface UserSearchQuery {
     q: string
+}
+
+export interface UserDetailsPayload {
+    user_id: string
+}
+
+export interface UserDetailsResponse {
+    user_id: string
+    username: string
 }
 
 class UserBackendApiService extends BackendApiService {
@@ -44,9 +49,9 @@ class UserBackendApiService extends BackendApiService {
         return response.data;
     }
 
-    public async getProfile(): Promise<any> {
-        const response = await this.axiosInstance.get(
-            ENDPOINTS.USERS.PROFILE.uri);
+    public async userDetails(data: UserDetailsPayload): Promise<UserDetailsResponse> {
+        const response = await this.axiosInstance.post(
+            ENDPOINTS.USERS.DETAILS.uri, data);
         return response.data;
     }
 }

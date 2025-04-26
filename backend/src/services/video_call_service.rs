@@ -94,7 +94,7 @@ pub async fn initiate_video_call_logic(
     });
 
     let ws_sessions = state.ws_sessions.read().await;
-    if let Some(recipient_addr) = ws_sessions.get(&recipient_id) {
+    if let Some((recipient_addr, _)) = ws_sessions.get(&recipient_id) {
         recipient_addr.do_send(TextMessage(ws_message.to_string()));
     }
 
@@ -113,7 +113,7 @@ pub async fn respond_video_call_logic(
     let notifications_collection = state.db.collection::<Notification>(Notification::collection_name());
     let notification = notifications_collection
         .find_one_and_update(
-            doc! { "_id": &notification_id, "user_id": &recipient_id },
+            doc! { "_id": &notification_id, "recipient_id": &recipient_id },
             doc! { "$set": { "is_handled": true } },
             None,
         )
@@ -123,7 +123,7 @@ pub async fn respond_video_call_logic(
 
     // Send response to caller
     let ws_sessions = state.ws_sessions.read().await;
-    if let Some(caller_addr) = ws_sessions.get(&notification.sender_id) {
+    if let Some((caller_addr, _)) = ws_sessions.get(&notification.sender_id) {
         let response_message = json!({
             "type": if accepted { "video_call_accepted" } else { "video_call_declined" },
             "from": recipient_id.to_hex(),

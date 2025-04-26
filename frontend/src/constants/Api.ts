@@ -49,8 +49,8 @@ export const ENDPOINTS = {
       uri: '/search_users',
       method: 'get',
     },
-    PROFILE: {
-      uri: '/users/profile',
+    DETAILS: {
+      uri: '/users/details',
       method: 'get',
     },
   },

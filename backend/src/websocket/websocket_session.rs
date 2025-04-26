@@ -8,8 +8,9 @@ use actix::prelude::*;
 use actix::{Actor, AsyncContext, Handler, StreamHandler};
 use actix_web_actors::ws;
 use mongodb::bson::oid::ObjectId;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::HashSet;
+use uuid::Uuid;
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -21,12 +22,17 @@ pub struct StopSession;
 
 pub struct WsSession {
     pub user_id: ObjectId,
+    session_id: Uuid,
     pub state: actix_web::web::Data<AppState>,
 }
 
 impl WsSession {
     pub fn new(user_id: ObjectId, state: actix_web::web::Data<AppState>) -> Self {
-        Self { user_id, state }
+        Self {
+            user_id,
+            session_id: Uuid::new_v4(),
+            state,
+        }
     }
 }
 
@@ -36,30 +42,54 @@ impl Actor for WsSession {
     fn started(&mut self, ctx: &mut Self::Context) {
         let ws_sessions = self.state.ws_sessions.clone();
         let user_id = self.user_id;
+        let sid = self.session_id;
         let addr = ctx.address();
 
         ctx.spawn(
             async move {
                 let mut sessions = ws_sessions.write().await;
-                if let Some(existing_session) = sessions.get(&user_id) {
-                    existing_session.do_send(StopSession);
+                if let Some((old_addr, _)) = sessions.get(&user_id) {
+                    old_addr.do_send(StopSession);
                 }
-                sessions.insert(user_id, addr);
+                sessions.insert(user_id, (addr, sid));
+                drop(sessions);
+
+                let sessions = ws_sessions.read().await;
+                let msg = json!({ "type":"user_online", "user_id": user_id.to_hex() });
+                for (&session_user_id, (addr, _)) in sessions.iter() {
+                    if session_user_id != user_id {
+                        let _ = addr.do_send(TextMessage(msg.to_string()));
+                    }
+                }
+                drop(sessions);
             }
             .into_actor(self),
         );
     }
 
-    fn stopped(&mut self, ctx: &mut Self::Context) {
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
         let ws_sessions = self.state.ws_sessions.clone();
         let user_id = self.user_id;
+        let sid = self.session_id;
 
-        ctx.spawn(
-            async move {
-                ws_sessions.write().await.remove(&user_id);
+        actix::spawn(async move {
+            let mut sessions = ws_sessions.write().await;
+            if let Some((_, stored_sid)) = sessions.get(&user_id) {
+                if *stored_sid == sid {
+                    sessions.remove(&user_id);
+                    drop(sessions);
+
+                    let sessions_read = ws_sessions.read().await;
+                    let msg = json!({ "type":"user_offline", "user_id": user_id.to_hex() });
+                    for (&session_user_id, (addr, _)) in sessions_read.iter() {
+                        if session_user_id != user_id {
+                            let _ = addr.do_send(TextMessage(msg.to_string()));
+                        }
+                    }
+                    drop(sessions_read);
+                }
             }
-            .into_actor(self),
-        );
+        });
     }
 }
 
@@ -95,9 +125,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
                         let message_type = WsMessageType::from(message_type_str);
                         match message_type {
                             WsMessageType::Logout => {
-                                if let Some(addr) = state.ws_sessions.read().await.get(&user_id) {
+                                if let Some((addr, _)) =
+                                    state.ws_sessions.read().await.get(&user_id)
+                                {
                                     addr.do_send(StopSession);
                                 }
+                            }
+                            WsMessageType::DeleteChat => {
+                                handle_delete_chat(msg_json, &state).await;
                             }
                             WsMessageType::ChatMessage => {
                                 handle_chat_message(msg_json, &state, user_id).await;
@@ -109,6 +144,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
                             }
                             WsMessageType::VideoCallAccepted | WsMessageType::VideoCallDeclined => {
                                 handle_video_call_response(msg_json, &state, user_id).await;
+                            }
+                            WsMessageType::VideoCallEnded => {
+                                handle_end_call(msg_json, &state).await;
                             }
                             WsMessageType::Unknown => {
                                 eprintln!("Unknown message type: {}", message_type_str);
@@ -220,7 +258,7 @@ async fn handle_chat_message(
     let chats = state.chats.read().await;
     if let Some(participant_ids) = chats.get(&chat_id_str) {
         for participant_id in participant_ids {
-            if let Some(addr) = state.ws_sessions.read().await.get(participant_id) {
+            if let Some((addr, _)) = state.ws_sessions.read().await.get(participant_id) {
                 let mut outgoing_msg = serde_json::Map::new();
                 outgoing_msg.insert(
                     "type".to_string(),
@@ -246,14 +284,15 @@ async fn handle_chat_message(
                 let _ = addr.do_send(TextMessage(message_text));
             }
         }
+        drop(chats);
     }
 }
 
-async fn handle_webrtc_signaling(msg_json: Value, state: &actix_web::web::Data<AppState>) {
+async fn handle_delete_chat(msg_json: Value, state: &actix_web::web::Data<AppState>) {
     if let Some(target_user_id_str) = msg_json.get("target_user_id").and_then(|v| v.as_str()) {
         if let Ok(target_user_id) = ObjectId::parse_str(target_user_id_str) {
             let ws_sessions = state.ws_sessions.read().await;
-            if let Some(target_addr) = ws_sessions.get(&target_user_id) {
+            if let Some((target_addr, _)) = ws_sessions.get(&target_user_id) {
                 let message_text = msg_json.to_string();
                 let _ = target_addr.do_send(TextMessage(message_text));
             } else {
@@ -263,7 +302,43 @@ async fn handle_webrtc_signaling(msg_json: Value, state: &actix_web::web::Data<A
             eprintln!("Invalid target user ID");
         }
     } else {
-        eprintln!("Target user ID not provided");
+        eprintln!("Target user ID not provided {}", &msg_json.to_string());
+    }
+}
+
+async fn handle_webrtc_signaling(msg_json: Value, state: &actix_web::web::Data<AppState>) {
+    if let Some(target_user_id_str) = msg_json.get("target_user_id").and_then(|v| v.as_str()) {
+        if let Ok(target_user_id) = ObjectId::parse_str(target_user_id_str) {
+            let ws_sessions = state.ws_sessions.read().await;
+            if let Some((target_addr, _)) = ws_sessions.get(&target_user_id) {
+                let message_text = msg_json.to_string();
+                let _ = target_addr.do_send(TextMessage(message_text));
+            } else {
+                eprintln!("Target user is not online");
+            }
+        } else {
+            eprintln!("Invalid target user ID");
+        }
+    } else {
+        eprintln!("Target user ID not provided {}", &msg_json.to_string());
+    }
+}
+
+async fn handle_end_call(msg_json: Value, state: &actix_web::web::Data<AppState>) {
+    if let Some(target_user_id_str) = msg_json.get("target_user_id").and_then(|v| v.as_str()) {
+        if let Ok(target_user_id) = ObjectId::parse_str(target_user_id_str) {
+            let ws_sessions = state.ws_sessions.read().await;
+            if let Some((target_addr, _)) = ws_sessions.get(&target_user_id) {
+                let message_text = msg_json.to_string();
+                let _ = target_addr.do_send(TextMessage(message_text));
+            } else {
+                log::warn!("Target user is not online");
+            }
+        } else {
+            log::warn!("Invalid target user ID format");
+        }
+    } else {
+        log::warn!("Target user ID not provided");
     }
 }
 
@@ -275,7 +350,7 @@ async fn handle_video_call_response(
     if let Some(caller_id_str) = msg_json.get("caller_id").and_then(|v| v.as_str()) {
         if let Ok(caller_id) = ObjectId::parse_str(caller_id_str) {
             let ws_sessions = state.ws_sessions.read().await;
-            if let Some(target_addr) = ws_sessions.get(&caller_id) {
+            if let Some((target_addr, _)) = ws_sessions.get(&caller_id) {
                 let message_text = msg_json.to_string();
                 let _ = target_addr.do_send(TextMessage(message_text));
             } else {

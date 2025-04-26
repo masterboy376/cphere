@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { UserAvatar } from './UserAvatar'
 import { useChat } from '../../contexts/ChatContext'
 import chatBackendApiService, { ChatsDeletePayload } from '../../services/chat/ChatBackendApiService'
+import videoBackendApiService, { VideoIntiatePayload } from '../../services/video/VideoBackendApiService'
+import wsService from '../../services/ws/WsService'
+import { DeleteChat } from '../../types/WsMessageTypes'
 
 interface ChatCardProps {
   id: string
@@ -13,7 +16,7 @@ interface ChatCardProps {
   lastMessageTimestamp: Date
 }
 
-export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTimestamp }: ChatCardProps) => {
+export const ChatCard = ({ id, participantUserId, participantUsername, lastMessage, lastMessageTimestamp }: ChatCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigate = useNavigate()
   const { removeChat } = useChat()
@@ -26,20 +29,22 @@ export const ChatCard = ({ id, participantUsername, lastMessage, lastMessageTime
   }
 
   const handleVideoCall = () => {
-    navigate(`/video-call/${id}`)
+    const payload: VideoIntiatePayload = {
+      chat_id: id,
+      recipient_id: participantUserId
+    }
+    videoBackendApiService.initiate(payload)
+    navigate(`/video-call/${participantUserId}`, { state: { accepted: false } })
   }
 
-  const handleDeleteChat = async () => {
-    const payload: ChatsDeletePayload = {
+  const handleDeleteChat = () => {
+    chatBackendApiService.delete({ chat_id: id } as ChatsDeletePayload)
+    wsService.sendMessage({
+      type: 'delete_chat',
+      target_user_id: participantUserId,
       chat_id: id
-    }
-    try {
-      await chatBackendApiService.delete(payload)
-      removeChat(id)
-      setIsMenuOpen(false)
-    } catch (error) {
-      console.error('Error deleting chat:', error)
-    }
+    } as DeleteChat)
+    removeChat(id)
   }
 
   const handleClickOutsideMenu = (event: MouseEvent) => {

@@ -1,14 +1,24 @@
 import { NotificationSummaryBackendType } from "../contexts/NotificationContext";
 
 export type WsMessage =
+  DeleteChat
   | ChatMessage
+  | UserOnline
+  | UserOffline
   | WebrtcOffer
   | WebrtcAnswer
   | WebrtcIceCandidate
+  | VideoCallEnd
   | VideoCallRequest
   | VideoCallResponse
   | LogoutMessage
   ;
+
+export interface DeleteChat {
+  type: "delete_chat";
+  target_user_id: string;
+  chat_id: string;
+}
 
 export interface ChatMessage {
   type: "chat_message";
@@ -18,6 +28,16 @@ export interface ChatMessage {
   sender_id: string;
   sender_username: string;
   created_at: Date | null;
+}
+
+export interface UserOffline {
+  type: "user_offline";
+  user_id: string;
+}
+
+export interface UserOnline {
+  type: "user_online";
+  user_id: string;
 }
 
 export interface WebrtcOffer {
@@ -36,6 +56,11 @@ export interface WebrtcIceCandidate {
   type: "webrtc_ice_candidate";
   target_user_id: string;
   candidate: any;
+}
+
+export interface VideoCallEnd {
+  type: "video_call_ended";
+  target_user_id: string;
 }
 
 export interface VideoCallRequest {

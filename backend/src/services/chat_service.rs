@@ -37,6 +37,17 @@ pub struct ChatSummary {
     pub last_message_timestamp: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+/// Retrieve a chat room by its ID.
+pub async fn get_chat_by_id(state: &AppState, chat_id: ObjectId) -> Result<Chat, Error> {
+    let chats = state.db.collection::<Chat>(Chat::collection_name());
+    let chat = chats
+        .find_one(doc! { "_id": &chat_id }, None)
+        .await
+        .map_err(|_| ErrorInternalServerError("Database error retrieving chat"))?
+        .ok_or_else(|| ErrorForbidden("Chat not found"))?;
+    Ok(chat)
+}
+
 pub async fn get_user_chats(
     state: &AppState,
     user_id: ObjectId,
@@ -102,7 +113,7 @@ pub async fn get_user_chats(
         };
 
         if last_message.is_none() {
-            continue; // Skip if no last message
+            continue;
         }
 
         // Create chat summary
@@ -125,18 +136,11 @@ pub async fn get_user_chats(
     Ok(chat_summaries)
 }
 
-/// Retrieve a chat room by its ID.
-pub async fn get_chat_by_id(state: &AppState, chat_id: ObjectId) -> Result<Chat, Error> {
-    let chats = state.db.collection::<Chat>(Chat::collection_name());
-    let chat = chats
-        .find_one(doc! { "_id": &chat_id }, None)
-        .await
-        .map_err(|_| ErrorInternalServerError("Database error retrieving chat"))?
-        .ok_or_else(|| ErrorForbidden("Chat not found"))?;
-    Ok(chat)
-}
-
-pub async fn get_chat_summary(state: &AppState, chat_id: ObjectId, user_id: ObjectId) -> Result<ChatSummary, Error> {
+pub async fn get_chat_summary(
+    state: &AppState,
+    chat_id: ObjectId,
+    user_id: ObjectId,
+) -> Result<ChatSummary, Error> {
     let chat_collection = state.db.collection::<Chat>(Chat::collection_name());
     let users_collection = state.db.collection::<User>(User::collection_name());
     let messages_collection = state.db.collection::<Message>(Message::collection_name());
@@ -146,8 +150,8 @@ pub async fn get_chat_summary(state: &AppState, chat_id: ObjectId, user_id: Obje
         .await
         .map_err(|_| ErrorInternalServerError("Database error retrieving chat"))?
         .ok_or_else(|| ErrorForbidden("Chat not found"))?;
-    
-    // Find the other participant 
+
+    // Find the other participant
     let other_participant_id = chat
         .participant_ids
         .iter()
@@ -225,15 +229,20 @@ pub async fn create_chat(
 
     // Otherwise, create a new Chat document
     let new_chat = Chat::new(chat_id, participant_ids.into_iter().collect(), None);
-    chats
+    let insert_result = chats
         .insert_one(new_chat.clone(), None)
         .await
         .map_err(|_| ErrorInternalServerError("Failed to create chat room"))?;
+    
+    // Get the MongoDB-generated ID from the insert result
+    let inserted_id = insert_result
+        .inserted_id
+        .as_object_id()
+        .ok_or_else(|| ErrorInternalServerError("Failed to get inserted chat ID"))?;
 
-    // Update the document in MongoDB to ensure id field is set correctly
-    // This is necessary because MongoDB auto-generates _id, but our model expects id
+    // Use the actual inserted ID in the response
     let new_result = serde_json::json!({
-        "id": new_chat.id.map_or_else(String::new, |id| id.to_string()),
+        "id": inserted_id.to_string(),
         "participant_ids": new_chat.participant_ids,
         "created_at": new_chat.created_at
     });
@@ -246,13 +255,29 @@ pub async fn delete_chat(
     chat_id: ObjectId,
     user_id: ObjectId,
 ) -> Result<(), Error> {
+    // First verify the user is a participant in the chat
     let chats = state.db.collection::<Chat>(Chat::collection_name());
-    let delete_result = chats
-        .delete_one(doc! { "_id": &chat_id, "participant_ids": &user_id }, None)
+    let _chat = chats
+        .find_one(doc! { "_id": &chat_id, "participant_ids": &user_id }, None)
         .await
-        .map_err(|_| ErrorInternalServerError("Database error during deletion"))?;
+        .map_err(|_| ErrorInternalServerError("Database error during chat verification"))?
+        .ok_or_else(|| ErrorForbidden("You are not a participant in this chat"))?;
+    
+    // Delete all messages associated with the chat
+    let messages = state.db.collection::<Message>(Message::collection_name());
+    messages
+        .delete_many(doc! { "chat_id": &chat_id }, None)
+        .await
+        .map_err(|_| ErrorInternalServerError("Failed to delete chat messages"))?;
+    
+    // Delete the chat itself
+    let delete_result = chats
+        .delete_one(doc! { "_id": &chat_id }, None)
+        .await
+        .map_err(|_| ErrorInternalServerError("Database error during chat deletion"))?;
+    
     if delete_result.deleted_count == 0 {
-        Err(ErrorForbidden("You are not a participant in this chat"))
+        Err(ErrorInternalServerError("Failed to delete chat"))
     } else {
         Ok(())
     }

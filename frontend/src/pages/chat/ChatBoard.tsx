@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, VideoCameraIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { UserAvatar } from '../../components/chat/UserAvatar'
 import { MessageCard } from '../../components/chat/MessageCard'
-import chatBackendApiService from '../../services/chat/ChatBackendApiService'
-import { ChatMessage } from '../../types/WsMessageTypes'
+import chatBackendApiService, { ChatsDeletePayload } from '../../services/chat/ChatBackendApiService'
+import { ChatMessage, UserOnline, UserOffline, DeleteChat } from '../../types/WsMessageTypes'
 import wsService from '../../services/ws/WsService'
 import { useAuthentication } from '../../contexts/AuthenticationContext'
 import videoBackendApiService, { VideoIntiatePayload } from '../../services/video/VideoBackendApiService'
-import { ChatSummaryType } from '../../contexts/ChatContext'
+import userBackendApiService from '../../services/user/UserBackendApiService'
+import { useChat, ChatSummaryType } from '../../contexts/ChatContext'
 
 interface Message {
   id: string
@@ -25,6 +26,8 @@ export const ChatBoard = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const { authState } = useAuthentication()
   const [chatSummary, setChatSummary] = useState<ChatSummaryType>()
+  const [participantOnlineStatus, setParticipantOnlineStatus] = useState<boolean>(false)
+  const { toFrontendChatSummary } = useChat()
 
   const handleVideoCall = () => {
     if (chatId && chatSummary?.participantUserId) {
@@ -33,7 +36,19 @@ export const ChatBoard = () => {
         recipient_id: chatSummary?.participantUserId
       }
       videoBackendApiService.initiate(payload)
-      navigate(`/video-call/${chatSummary?.participantUserId}`)
+      navigate(`/video-call/${chatSummary?.participantUserId}`, { state: { accepted: false } })
+    }
+  }
+
+  const handleDeleteChat = () => {
+    if (chatId && chatSummary?.participantUserId) {
+      chatBackendApiService.delete({ chat_id: chatId } as ChatsDeletePayload)
+      wsService.sendMessage({
+        type: 'delete_chat',
+        target_user_id: chatSummary?.participantUserId,
+        chat_id: chatId
+      } as DeleteChat)
+      navigate(-1)
     }
   }
 
@@ -54,29 +69,56 @@ export const ChatBoard = () => {
   }
 
   useEffect(() => {
-    const fetchInitialMessages = async () => {
-      if (chatId) {
-        try {
-          const data = await chatBackendApiService.getMessages(chatId)
-          setMessages(data)
-        } catch (error) {
-          console.error('Error fetching messages:', error)
-        }
-      }
-    }
+    const initChatBoard = async () => {
+      if (!chatId) return;
 
-    const fetchChatSummary = async () => {
-      if (chatId) {
-        try {
-          const data = await chatBackendApiService.getSummary(chatId)
-          setChatSummary(data)
-        } catch (error) {
-          console.error('Error fetching chat summary:', error)
-        }
-      }
-    }
+      try {
+        // Fetch chat summary first
+        const summaryData = await chatBackendApiService.getSummary(chatId);
+        const frontendSummary = toFrontendChatSummary(summaryData);
+        setChatSummary(frontendSummary);
 
-    const chatMessageListener = async (message: ChatMessage) => {
+        // fetch initial messages
+        const initialMessages = await chatBackendApiService.getMessages(chatId);
+        setMessages(initialMessages);
+
+        // Now that chatSummary is available, fetch online status
+        const onlineStatus = await userBackendApiService.isOnline(frontendSummary.participantUserId);
+        setParticipantOnlineStatus(onlineStatus);
+
+        // Setup WebSocket listeners
+
+        const userOnlineListener = (message: UserOnline) => {
+          if (message.type === 'user_online' && message.user_id === frontendSummary.participantUserId) {
+            setParticipantOnlineStatus(true);
+          }
+        };
+
+        const userOfflineListener = (message: UserOffline) => {
+          if (message.type === 'user_offline' && message.user_id === frontendSummary.participantUserId) {
+            setParticipantOnlineStatus(false);
+          }
+        };
+
+        wsService.addEventListener('user_online', userOnlineListener);
+        wsService.addEventListener('user_offline', userOfflineListener);
+
+        // Cleanup listeners on unmount
+        return () => {
+          wsService.removeEventListener('user_online', userOnlineListener);
+          wsService.removeEventListener('user_offline', userOfflineListener);
+        };
+
+      } catch (error) {
+        console.error('Error initializing chat board:', error);
+      }
+    };
+
+    initChatBoard();
+  }, [chatId, toFrontendChatSummary]);
+
+  useEffect(() => {
+    const chatMessageListener = (message: ChatMessage) => {
       if (message.message_id && message.created_at) {
         const receivedMessage: Message = {
           id: message.message_id,
@@ -84,21 +126,26 @@ export const ChatBoard = () => {
           sender_id: message.sender_id,
           content: message.content,
           created_at: new Date(message.created_at)
-        }
-        setMessages(prevMessages => [...prevMessages, receivedMessage])
-        console.log('Received message:', receivedMessage)
+        };
+        setMessages(prevMessages => [...prevMessages, receivedMessage]);
+      }
+    };
+
+    const deleteChatListener = (message: DeleteChat) => {
+      if (message.chat_id === chatId) {
+        navigate(-1);
       }
     }
 
-    fetchInitialMessages()
-    fetchChatSummary()
-    wsService.addEventListener('chat_message', chatMessageListener)
+    wsService.addEventListener('chat_message', chatMessageListener);
+    wsService.addEventListener('delete_chat', deleteChatListener);
 
+    // Cleanup listeners on unmount
     return () => {
-      wsService.removeEventListener('chat_message', chatMessageListener)
-    }
-  }, [chatId])
-
+      wsService.removeEventListener('chat_message', chatMessageListener);
+      wsService.removeEventListener('delete_chat', deleteChatListener);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -108,9 +155,14 @@ export const ChatBoard = () => {
           <button onClick={() => navigate(-1)} className="hover:bg-background-lite p-2 rounded-full transition-all duration-300 ease-in-out">
             <ArrowLeftIcon className="h-6 w-6" />
           </button>
-          <UserAvatar username="participantUsername" />
+          <div className="relative">
+            <UserAvatar username={chatSummary ? chatSummary.participantUsername : ''} />
+          </div>
           <div>
-            <h2 className="font-medium text-text-primary">Party</h2>
+            <h2 className="font-medium text-text-primary">{chatSummary ? chatSummary.participantUsername : ''}</h2>
+            <p className={`text-sm ${participantOnlineStatus ? 'text-green-500' : 'text-gray-400'}`}>
+              {participantOnlineStatus ? 'Online' : 'Offline'}
+            </p>
           </div>
         </div>
 
@@ -119,7 +171,8 @@ export const ChatBoard = () => {
             onClick={handleVideoCall}>
             <VideoCameraIcon className="h-6 w-6" />
           </button>
-          <button className="text-red-500 hover:bg-background-lite p-2 rounded-full transition-all duration-300 ease-in-out">
+          <button className="text-red-500 hover:bg-background-lite p-2 rounded-full transition-all duration-300 ease-in-out"
+            onClick={handleDeleteChat}>
             <TrashIcon className="h-6 w-6" />
           </button>
         </div>

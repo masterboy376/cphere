@@ -11,9 +11,9 @@ type NotificationSummaryType = {
 
 type NotificationSummaryBackendType = {
     id: string,
-    type: string,
-    sender_userame: string,
-    sender_id: string,
+    notification_type: string,
+    sender_username: string,
+    sender_user_id: string,
     timestamp: Date,
     message: string
 }
@@ -55,9 +55,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const toFrontendNotification = (notification: NotificationSummaryBackendType): NotificationSummaryType => ({
         id: notification.id,
-        type: notification.type,
-        senderUserame: notification.sender_userame,
-        senderId: notification.sender_id,
+        type: notification.notification_type,
+        senderUserame: notification.sender_username,
+        senderId: notification.sender_user_id,
         timestamp: notification.timestamp,
         message: notification.message
     })

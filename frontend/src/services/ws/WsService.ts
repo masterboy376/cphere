@@ -31,7 +31,6 @@ class WebSocketService {
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
-      console.log("WebSocket connection established.");
       this.dispatchEvent("connection_open", {});
     };
 
@@ -45,7 +44,6 @@ class WebSocketService {
     };
 
     this.ws.onclose = () => {
-      console.log("WebSocket connection closed.");
       this.dispatchEvent("connection_close", {});
     };
   }
