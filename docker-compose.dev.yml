@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017" # Expose for local dev if needed
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=cphere_db
+    networks:
+      - cphere-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    environment:
+      - APP_ENV=development
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+    networks:
+      - cphere-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cphere-net
+
+volumes:
+  mongo_data:
+
+networks:
+  cphere-net:

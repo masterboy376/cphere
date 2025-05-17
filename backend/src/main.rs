@@ -63,7 +63,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default()) // Enable logging middleware
             .wrap(
                 Cors::default()
-                    .allowed_origin("http://localhost:5173")
+                    .allowed_origin("http://localhost")
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![
                         actix_web::http::header::AUTHORIZATION,
@@ -129,7 +129,7 @@ async fn main() -> std::io::Result<()> {
                 );
             })
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))? // because it is running under docker container
     .run();
 
     // Clone the server handle to use in the signal handler

@@ -1,6 +1,6 @@
 // src/config/app_config.rs
 use crate::constants;
-use dotenv::dotenv;
+use dotenv::{dotenv, from_filename};
 use serde::Deserialize;
 use std::env;
 use std::error::Error;
@@ -20,7 +20,12 @@ pub struct AppConfig {
 impl AppConfig {
     /// Loads configuration from environment variables.
     pub fn new() -> Result<Self, Box<dyn Error>> {
-        dotenv().ok(); // Load from .env if present
+        dotenv().ok();
+        let env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
+        if env == "production" {
+            from_filename(".env.prod").ok();
+        }
+
         let database_url = env::var("DATABASE_URL")
             .map_err(|e| Box::<dyn Error>::from(format!("Missing DATABASE_URL: {}", e)))?;
         let database_name = env::var("DATABASE_NAME")

@@ -40,7 +40,7 @@ export const SearchPage = () => {
     try {
       const payload: ChatsCreatePayload = { participant_id: userId }
       const data = await chatBackendApiService.create(payload)
-      
+
       if (data && data.id) {
         navigate(`/chats/${data.id}`)
       } else {
@@ -50,7 +50,7 @@ export const SearchPage = () => {
       console.error('Failed to start chat:', error)
     }
   }
-  
+
   useEffect(() => {
     // Debounced search
     const debounceTimer = setTimeout(searchUsers, 300)
@@ -76,7 +76,7 @@ export const SearchPage = () => {
       {/* Results */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <Loader message='Searching...'/>
+          <Loader message='Searching...' />
         ) : results.length > 0 ? (
           results.map((user) => (
             <button
