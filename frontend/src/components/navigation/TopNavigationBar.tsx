@@ -22,7 +22,7 @@ export const TopNavigationBar: FC = () => {
 
         {/* App Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-full" />
+          <img src="/logo.svg" alt="cphere" className='h-12 w-12' />
           <span className="text-xl font-bold text-primary">Cphere</span>
         </div>
 

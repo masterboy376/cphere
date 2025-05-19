@@ -13,9 +13,7 @@ services:
       - cphere-net
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: masterboy376/cphere-backend:v1.0.0
     env_file:
       - ./backend/.env.prod
     environment:
@@ -28,11 +26,7 @@ services:
       - cphere-net
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    env_file:
-      - ./frontend/.env.prod
+    image: masterboy376/cphere-frontend:v1.0.0
     ports:
       - "80:80"
     depends_on:
