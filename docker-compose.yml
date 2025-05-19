@@ -3,48 +3,45 @@ version: "3.8"
 services:
   mongo:
     image: mongo:6
+    ports:
+      - "27017:27017" # Expose for local dev if needed
     volumes:
       - mongo_data:/data/db
-    ports:
-      - "${MONGO_HOST_PORT}:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=cphere_db
+    networks:
+      - cphere-net
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: ${BACKEND_BUILD_TARGET}      # either “builder” or “runtime”
-    image: cphere-backend:${TAG:-latest}
     env_file:
-      - backend/.env${ENV_SUFFIX}           # picks .env.development or .env.prod
+      - ./backend/.env.prod
     environment:
-      - APP_ENV=${APP_ENV}
-    command: ${BACKEND_COMMAND}           # overrides CMD in dev
+      - APP_ENV=production
     ports:
-      - "${BACKEND_HOST_PORT}:8080"
-    volumes:
-      - ${BACKEND_VOLUME:-}               # e.g. “./backend:/usr/src/app” in dev
-
+      - "8080:8080"
     depends_on:
       - mongo
+    networks:
+      - cphere-net
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: ${FRONTEND_BUILD_TARGET}    # “builder” or “runtime”
-    image: cphere-frontend:${TAG:-latest}
     env_file:
-      - frontend/.env${ENV_SUFFIX}
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-    command: ${FRONTEND_COMMAND}
+      - ./frontend/.env.prod
     ports:
-      - "${FRONTEND_HOST_PORT}:80"
-    volumes:
-      - ${FRONTEND_VOLUME:-}             # e.g. “./frontend:/usr/src/app” in dev
-
+      - "80:80"
     depends_on:
       - backend
+    networks:
+      - cphere-net
 
 volumes:
   mongo_data:
+
+networks:
+  cphere-net:
