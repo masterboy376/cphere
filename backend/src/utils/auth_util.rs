@@ -37,7 +37,7 @@ pub fn generate_reset_token() -> String {
 pub fn send_reset_email(email: &str, token: &str) -> Result<(), Box<dyn Error>> {
     let config = AppConfig::new().unwrap();
     
-    let reset_link = format!("http://localhost:5173/reset-password/{}", token);
+    let reset_link = format!("http://localhost/reset-password/{}", token);
     // reset_link = format!("{}/reset_password?email={}&token={}", config.frontend_url, email, token);
     // Build the email message
     let email_message = Message::builder()
