@@ -43,31 +43,52 @@ Cphere follows a modular architecture to separate concerns and enhance maintaina
 
 ```
 ├── backend
-│   ├── src
-│   │   ├── main.rs
-│   │   ├── lib.rs
-│   │   ├── config
-│   │   ├── models
-│   │   ├── services
-│   │   ├── api
-│   │   ├── middleware
-│   │   ├── utils
-│   ├── migrations
-│   ├── docker
-│   ├── tests
-│   ├── .github/workflows
-│   ├── Cargo.toml
-│   └── README.md
-├── frontend
-│   ├── pages
-│   ├── components
-│   ├── services
-│   ├── styles
-│   ├── public
-│   ├── tsconfig.json
-│   ├── package.json
-│   └── next.config.js
-└── README.md
+│   ├── src
+│   │   ├── config
+│   │   ├── handlers
+│   │   ├── middleware
+│   │   ├── models
+│   │   ├── services
+│   │   ├── states
+│   │   ├── types
+│   │   ├── utils
+│   │   └── websocket
+│   └── tests
+│       ├── acceptance
+│       ├── integration
+│       └── unit
+│           └── handlers
+└── frontend
+    ├── public
+    └── src
+        ├── assets
+        ├── components
+        │   ├── button
+        │   ├── chat
+        │   ├── common
+        │   ├── navigation
+        │   └── notification
+        ├── constants
+        ├── contexts
+        ├── hooks
+        ├── layouts
+        ├── pages
+        │   ├── auth
+        │   ├── chat
+        │   ├── search
+        │   └── video
+        ├── services
+        │   ├── auth
+        │   ├── chat
+        │   ├── user
+        │   ├── video
+        │   └── ws
+        ├── styles
+        ├── tests
+        │   └── mocks
+        ├── types
+        ├── utils
+        └── wrappers
 ```
 
 ## Getting Started
